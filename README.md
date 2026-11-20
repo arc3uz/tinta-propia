@@ -4,6 +4,9 @@
 
 # Tinta Propia
 
+[![CI](https://github.com/arc3uz/tinta-propia/actions/workflows/ci.yml/badge.svg)](https://github.com/arc3uz/tinta-propia/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Aplicación de escritorio para escribir manuscritos con tu propia letra, con una interfaz inspirada en Overleaf: panel de archivos y esquema a la izquierda, editor Markdown al centro y vista previa paginada a la derecha.
 
 Funciona **100 % local**. No hay cuentas, servidores, telemetría ni conexión a internet.
@@ -63,7 +66,7 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
 ## Desarrollo
 
 ```bash
-git clone https://github.com/TU_USUARIO/tinta-propia.git
+git clone https://github.com/arc3uz/tinta-propia.git
 cd tinta-propia
 npm ci
 npm run app:dev
@@ -223,9 +226,9 @@ El repositorio incluye dos workflows:
 
 La app usa la carpeta de datos de Tauri según el sistema:
 
-- Linux: `~/.local/share/cl.uchile.tintapropia/`
-- Windows: `%APPDATA%\cl.uchile.tintapropia\`
-- macOS: `~/Library/Application Support/cl.uchile.tintapropia/`
+- Linux: `~/.local/share/io.github.arc3uz.tintapropia/`
+- Windows: `%APPDATA%\io.github.arc3uz.tintapropia\`
+- macOS: `~/Library/Application Support/io.github.arc3uz.tintapropia/`
 
 Dentro están:
 
@@ -239,7 +242,7 @@ projects/         carpeta sugerida para proyectos
 
 El menú **Abrir carpeta de datos** lleva directo a esa ubicación.
 
-Si vienes de la versión anterior (`Papernotes Studio`), la carpeta cambió de `cl.uchile.papernotes.studio` a `cl.uchile.tintapropia`. Puedes copiar `autosave.json`, `settings.json`, `recent.json` y la carpeta `fonts/` a la nueva ubicación. Los proyectos `.papernotes` se abren sin cambios.
+Si vienes de la versión anterior (`Papernotes Studio`), la carpeta cambió de `cl.uchile.papernotes.studio` a `io.github.arc3uz.tintapropia`. Puedes copiar `autosave.json`, `settings.json`, `recent.json` y la carpeta `fonts/` a la nueva ubicación. Los proyectos `.papernotes` se abren sin cambios.
 
 ## Formato de proyecto
 

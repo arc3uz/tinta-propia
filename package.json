@@ -5,6 +5,14 @@
   "type": "module",
   "description": "Tinta Propia: editor local de manuscritos con tu letra, interfaz tipo Overleaf.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arc3uz/tinta-propia.git"
+  },
+  "homepage": "https://github.com/arc3uz/tinta-propia",
+  "bugs": {
+    "url": "https://github.com/arc3uz/tinta-propia/issues"
+  },
   "engines": {
     "node": ">=20"
   },
