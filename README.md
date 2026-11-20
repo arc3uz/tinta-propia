@@ -63,6 +63,25 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
 - WebView2. Windows 10/11 suele incluirlo; si no, el instalador lo incorpora en modo offline.
 - Rust con el toolchain `stable-x86_64-pc-windows-msvc`.
 
+## Qué incluye el repositorio
+
+El repositorio contiene todo lo necesario para compilar desde cero:
+
+- Código del frontend (`src/`), del backend Rust (`src-tauri/src/`) y configuración de Tauri.
+- `package-lock.json` y `src-tauri/Cargo.lock` para reproducir las versiones.
+- Fuentes, iconos, documento inicial, tests y workflows de CI/release.
+
+No se versionan los archivos que se generan al compilar:
+
+```text
+node_modules/        dependencias de npm
+dist/                frontend compilado por Vite
+src-tauri/target/    binarios y paquetes de Rust
+src-tauri/gen/       esquemas generados por Tauri
+```
+
+Tampoco se versionan los instaladores. GitHub Actions los construye a partir del código cuando se publica un tag `v*`.
+
 ## Desarrollo
 
 ```bash
