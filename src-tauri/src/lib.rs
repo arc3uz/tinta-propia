@@ -156,7 +156,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if let Err(err) = storage::ensure_dirs(&app.handle().clone()) {
-                eprintln!("Papernotes Studio: {err}");
+                eprintln!("Tinta Propia: {err}");
             }
             Ok(())
         })
@@ -181,5 +181,5 @@ pub fn run() {
             export_pdf
         ])
         .run(tauri::generate_context!())
-        .expect("Error al iniciar Papernotes Studio");
+        .expect("Error al iniciar Tinta Propia");
 }

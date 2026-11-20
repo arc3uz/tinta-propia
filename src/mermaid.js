@@ -72,7 +72,7 @@ let renderSeq = 0;
 
 export async function renderSingleMermaid(code) {
   initMermaid();
-  const id = `papernotes-mmd-${Date.now()}-${++renderSeq}`;
+  const id = `tintapropia-mmd-${Date.now()}-${++renderSeq}`;
   const result = await mermaid.render(id, code);
   return svgToImage(result.svg);
 }

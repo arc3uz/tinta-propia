@@ -43,7 +43,7 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let file_name = path
         .file_name()
         .and_then(|s| s.to_str())
-        .unwrap_or("papernotes");
+        .unwrap_or("tinta-propia");
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())

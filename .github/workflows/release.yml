@@ -66,12 +66,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Papernotes Studio ${{ github.ref_name }}"
+          releaseName: "Tinta Propia ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
           args: --bundles ${{ matrix.bundles }}
           releaseBody: |
-            ## Papernotes Studio ${{ github.ref_name }}
+            ## Tinta Propia ${{ github.ref_name }}
 
             Aplicación de escritorio para escribir manuscritos con tu propia letra.
             Todo funciona de forma local, sin cuentas ni conexión a internet.

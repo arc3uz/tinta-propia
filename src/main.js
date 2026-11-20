@@ -1,6 +1,7 @@
 import "./fonts.css";
 import "./styles.css";
 import starterMd from "./assets/starter.md?raw";
+import symbolUrl from "./assets/brand/symbol.png";
 import { MarkdownEditor } from "./editor.js";
 import { initMermaid, renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
 import {
@@ -21,10 +22,10 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const isTauri =
   typeof window !== "undefined" && Boolean(window.__TAURI_INTERNALS__);
 const numberFmt = new Intl.NumberFormat("es-CL");
-const AUTOSAVE_KEY = "papernotes.autosave.v1";
-const SETTINGS_KEY = "papernotes.settings.v1";
-const EDITOR_WIDTH_KEY = "papernotes.editorWidth.v1";
-const SIDEBAR_KEY = "papernotes.sidebar.v1";
+const AUTOSAVE_KEY = "tintapropia.autosave.v1";
+const SETTINGS_KEY = "tintapropia.settings.v1";
+const EDITOR_WIDTH_KEY = "tintapropia.editorWidth.v1";
+const SIDEBAR_KEY = "tintapropia.sidebar.v1";
 
 const SETTING_IDS = [
   "font",
@@ -1400,9 +1401,9 @@ async function openProjectPath(path) {
 
 async function chooseProjectFile() {
   const path = await openFileDialog({
-    title: "Abrir proyecto Papernotes",
+    title: "Abrir proyecto Tinta Propia",
     multiple: false,
-    filters: [{ name: "Proyecto Papernotes", extensions: ["papernotes", "json"] }],
+    filters: [{ name: "Proyecto Tinta Propia", extensions: ["papernotes", "json"] }],
   });
   if (typeof path === "string") await openProjectPath(path);
 }
@@ -1431,7 +1432,7 @@ async function openProjectFlow() {
       await applyRuntimePayload(payload, null);
       toast("Proyecto abierto desde el navegador.", { title: "Listo" });
     } catch (error) {
-      toast("El archivo no es un proyecto Papernotes válido.", {
+      toast("El archivo no es un proyecto Tinta Propia válido.", {
         type: "error",
         title: "Error al abrir",
       });
@@ -1621,10 +1622,10 @@ async function saveProjectAs() {
   }
   try {
     const path = await saveFileDialog({
-      title: "Guardar proyecto Papernotes",
+      title: "Guardar proyecto Tinta Propia",
       defaultPath: `${slugify(app.title)}.papernotes`,
       filters: [
-        { name: "Proyecto Papernotes", extensions: ["papernotes"] },
+        { name: "Proyecto Tinta Propia", extensions: ["papernotes"] },
         { name: "JSON", extensions: ["json"] },
       ],
     });
@@ -1813,9 +1814,11 @@ function openDataDirectory() {
 function showAbout() {
   const body = createEl("div");
   const hero = createEl("div", { class: "about-hero" }, [
-    createEl("div", { class: "brand-mark", text: "P" }),
+    createEl("div", { class: "brand-mark" }, [
+      createEl("img", { src: symbolUrl, alt: "Tinta Propia" }),
+    ]),
     createEl("div", {}, [
-      createEl("h3", { text: "Papernotes Studio" }),
+      createEl("h3", { text: "Tinta Propia" }),
       createEl("p", { text: "Manuscritos con tu propia letra, 100 % locales." }),
     ]),
   ]);
@@ -2503,7 +2506,7 @@ boot().catch((error) => {
     "color:#ffd7d2;font-size:11px;max-width:80vw;white-space:pre-wrap;margin-top:14px;text-align:left";
   message.textContent = error?.stack || String(error);
   boot?.querySelector(".boot-card")?.append(message);
-  toast("No se pudo iniciar Papernotes Studio.", {
+  toast("No se pudo iniciar Tinta Propia.", {
     type: "error",
     title: "Error de arranque",
     timeout: 10000,

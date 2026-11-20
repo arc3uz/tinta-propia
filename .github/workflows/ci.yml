@@ -151,7 +151,7 @@ jobs:
       - name: Subir instaladores
         uses: actions/upload-artifact@v4
         with:
-          name: papernotes-studio-${{ matrix.artifact }}
+          name: tinta-propia-${{ matrix.artifact }}
           if-no-files-found: error
           retention-days: 14
           path: |

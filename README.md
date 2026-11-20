@@ -1,4 +1,8 @@
-# Papernotes Studio
+<p align="center">
+  <img src="docs/logo.png" alt="Tinta Propia" width="150" />
+</p>
+
+# Tinta Propia
 
 Aplicación de escritorio para escribir manuscritos con tu propia letra, con una interfaz inspirada en Overleaf: panel de archivos y esquema a la izquierda, editor Markdown al centro y vista previa paginada a la derecha.
 
@@ -59,8 +63,8 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
 ## Desarrollo
 
 ```bash
-git clone https://github.com/TU_USUARIO/papernotes-studio.git
-cd papernotes-studio
+git clone https://github.com/TU_USUARIO/tinta-propia.git
+cd tinta-propia
 npm ci
 npm run app:dev
 ```
@@ -112,7 +116,7 @@ El instalador de Windows usa **WebView2 offline**, así que no necesita internet
 npm run app:build -- --no-bundle
 ```
 
-El ejecutable queda en `src-tauri/target/release/papernotes-studio` (Linux) o `papernotes-studio.exe` (Windows).
+El ejecutable queda en `src-tauri/target/release/tinta-propia` (Linux) o `tinta-propia.exe` (Windows).
 
 No se recomienda compilar para Windows desde Linux ni al revés. Los workflows de GitHub Actions compilan cada sistema en su propio runner.
 
@@ -135,6 +139,12 @@ npm run lint          cargo clippy con -D warnings
 npm run test:rust     cargo test de la librería
 npm run check         build + pruebas Rust
 npm run version:bump  sincroniza la versión en package.json, Cargo.toml y tauri.conf.json
+```
+
+Para regenerar los iconos de la aplicación a partir del logo:
+
+```bash
+npx tauri icon docs/icon-1024.png -o src-tauri/icons
 ```
 
 ## CI y releases
@@ -213,9 +223,9 @@ El repositorio incluye dos workflows:
 
 La app usa la carpeta de datos de Tauri según el sistema:
 
-- Linux: `~/.local/share/cl.uchile.papernotes.studio/`
-- Windows: `%APPDATA%\cl.uchile.papernotes.studio\`
-- macOS: `~/Library/Application Support/cl.uchile.papernotes.studio/`
+- Linux: `~/.local/share/cl.uchile.tintapropia/`
+- Windows: `%APPDATA%\cl.uchile.tintapropia\`
+- macOS: `~/Library/Application Support/cl.uchile.tintapropia/`
 
 Dentro están:
 
@@ -228,6 +238,8 @@ projects/         carpeta sugerida para proyectos
 ```
 
 El menú **Abrir carpeta de datos** lleva directo a esa ubicación.
+
+Si vienes de la versión anterior (`Papernotes Studio`), la carpeta cambió de `cl.uchile.papernotes.studio` a `cl.uchile.tintapropia`. Puedes copiar `autosave.json`, `settings.json`, `recent.json` y la carpeta `fonts/` a la nueva ubicación. Los proyectos `.papernotes` se abren sin cambios.
 
 ## Formato de proyecto
 
@@ -247,6 +259,8 @@ Un `.papernotes` es un JSON legible:
   "updatedAt": 1760000000000
 }
 ```
+
+La extensión `.papernotes` se mantiene por compatibilidad con los proyectos creados antes del cambio de nombre. El contenido y el formato son exactamente los mismos.
 
 Al exportar Markdown plano, las imágenes no se incluyen: quedan como tokens `[[IMG:n]]`. Para conservarlas hay que guardar el proyecto `.papernotes` o exportar el PDF.
 
@@ -307,6 +321,7 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 
 ## Créditos
 
+- Aplicación: Tinta Propia.
 - Motor de manuscrito y fuentes originales: herramienta `Manuscrito Papernotes.html`.
 - Fuente calibrada: `MiLetra IIC2531.ttf`.
 - Mermaid 12.3.0, CodeMirror 6, Tauri 2 y Rust.

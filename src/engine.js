@@ -1,5 +1,5 @@
 /**
- * Motor de manuscrito Papernotes.
+ * Motor de manuscrito Tinta Propia.
  * Extraído y adaptado de "Manuscrito Papernotes.html".
  * Dibuja el documento completo sobre canvas, sin depender del DOM de la interfaz.
  */
@@ -35,7 +35,7 @@ export const INKS = {
 
 export const FONTS = [
   { value: "MiLetra IIC2531", label: "Mi letra IIC2531 (calibrada)" },
-  { value: "Papernotes", label: "Papernotes (incluida)" },
+  { value: "Papernotes", label: "Papel clásico (incluida)" },
   { value: "Caveat", label: "Caveat" },
   { value: "Patrick Hand", label: "Patrick Hand" },
   { value: "Kalam", label: "Kalam" },

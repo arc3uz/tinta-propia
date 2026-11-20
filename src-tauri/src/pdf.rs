@@ -135,8 +135,8 @@ pub fn export_pdf(req: PdfExportRequest) -> Result<String, String> {
 
     let info_id = doc.add_object(dictionary! {
         "Title" => pdf_text(&req.title),
-        "Producer" => Object::string_literal("Papernotes Studio"),
-        "Creator" => Object::string_literal("Papernotes Studio"),
+        "Producer" => Object::string_literal("Tinta Propia"),
+        "Creator" => Object::string_literal("Tinta Propia"),
     });
 
     doc.trailer.set("Root", Object::Reference(catalog_id));
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn writes_a_pdf_with_embedded_jpeg() {
-        let path = std::env::temp_dir().join("papernotes-rust-pdf-test.pdf");
+        let path = std::env::temp_dir().join("tinta-propia-rust-pdf-test.pdf");
         let req = PdfExportRequest {
             path: path.to_string_lossy().to_string(),
             title: "Prueba".to_string(),

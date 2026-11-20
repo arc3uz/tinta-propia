@@ -1,6 +1,6 @@
 # Contribuir
 
-Gracias por querer mejorar Papernotes Studio. El proyecto es pequeño y prioriza que la aplicación siga siendo local, rápida y fácil de compilar en Linux y Windows.
+Gracias por querer mejorar Tinta Propia. El proyecto es pequeño y prioriza que la aplicación siga siendo local, rápida y fácil de compilar en Linux y Windows.
 
 ## Flujo de trabajo
 
