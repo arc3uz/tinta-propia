@@ -1,7 +1,7 @@
 import "./fonts.css";
 import "./styles.css";
 import starterMd from "./assets/starter.md?raw";
-import symbolUrl from "./assets/brand/symbol.png";
+import iconUrl from "./assets/brand/icon.png";
 import { MarkdownEditor } from "./editor.js";
 import { initMermaid, renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
 import {
@@ -1815,7 +1815,7 @@ function showAbout() {
   const body = createEl("div");
   const hero = createEl("div", { class: "about-hero" }, [
     createEl("div", { class: "brand-mark" }, [
-      createEl("img", { src: symbolUrl, alt: "Tinta Propia" }),
+      createEl("img", { src: iconUrl, alt: "Tinta Propia" }),
     ]),
     createEl("div", {}, [
       createEl("h3", { text: "Tinta Propia" }),

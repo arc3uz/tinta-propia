@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Tinta Propia" width="150" />
+  <img src="docs/branding/logo.png" alt="Tinta Propia" width="150" />
 </p>
 
 # Tinta Propia
@@ -147,7 +147,7 @@ npm run version:bump  sincroniza la versión en package.json, Cargo.toml y tauri
 Para regenerar los iconos de la aplicación a partir del logo:
 
 ```bash
-npx tauri icon docs/icon-1024.png -o src-tauri/icons
+npx tauri icon src/assets/brand/icon.png -o src-tauri/icons
 ```
 
 ## CI y releases
@@ -306,9 +306,21 @@ src-tauri/
   tauri.windows.conf.json
   icons/
 
-.github/workflows/
-  ci.yml
-  release.yml
+docs/
+  branding/
+    logo.png
+  THIRD_PARTY_NOTICES.md
+
+.github/
+  CONTRIBUTING.md
+  CODE_OF_CONDUCT.md
+  SECURITY.md
+  dependabot.yml
+  pull_request_template.md
+  ISSUE_TEMPLATE/
+  workflows/
+    ci.yml
+    release.yml
 ```
 
 El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga de archivos, fuentes, diálogos, autosave y PDF. Mermaid también sigue en JavaScript dentro del webview.
@@ -331,11 +343,11 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 
 ## Documentación
 
-- [Guía de contribución](CONTRIBUTING.md)
-- [Código de conducta](CODE_OF_CONDUCT.md)
-- [Política de seguridad](SECURITY.md)
+- [Guía de contribución](.github/CONTRIBUTING.md)
+- [Código de conducta](.github/CODE_OF_CONDUCT.md)
+- [Política de seguridad](.github/SECURITY.md)
 - [Historial de cambios](CHANGELOG.md)
-- [Avisos de terceros y licencias de fuentes](THIRD_PARTY_NOTICES.md)
+- [Avisos de terceros y licencias de fuentes](docs/THIRD_PARTY_NOTICES.md)
 - [Licencia MIT](LICENSE)
 
 ## Licencia
