@@ -1,7 +1,7 @@
 import "./fonts.css";
 import "./styles.css";
-import starterMd from "./assets/starter.md?raw";
 import iconUrl from "./assets/brand/icon.png";
+import exampleMd from "./assets/example.md?raw";
 import { MarkdownEditor } from "./editor.js";
 import { initMermaid, renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
 import {
@@ -68,7 +68,7 @@ const app = {
   boot: null,
   bootError: null,
   editor: null,
-  title: "Resumen I2 — Compacto",
+  title: "Sin título",
   projectPath: null,
   settings: { ...DEFAULT_SETTINGS },
   assets: {},
@@ -344,7 +344,7 @@ function showProgress(title, subtitle) {
 
 function fallbackBootstrap() {
   return {
-    version: "0.1.0",
+    version: "0.1.1",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -1342,6 +1342,32 @@ async function applyRuntimePayload(payload, path = null) {
   scheduleAutosave(400);
 }
 
+async function loadExampleTemplate() {
+  const ok = await confirmDiscard();
+  if (!ok) return;
+  app.compileGen += 1;
+  app.title = "Plantilla de ejemplo";
+  app.projectPath = null;
+  app.assets = {};
+  app.images = new Map();
+  app.imageSeq = 0;
+  app.mermaidErrors.clear();
+  app.mermaidQueue.clear();
+  app.editor.setValue(exampleMd);
+  app.zoomMode = "fit";
+  app.currentPage = 1;
+  syncSettingsControls();
+  updateTitleUI();
+  updateOutline();
+  updateDocStats();
+  markDirty();
+  await compile({ preservePage: false });
+  scheduleAutosave(500);
+  toast("Plantilla cargada. Edítala o bórrala para empezar tu manuscrito.", {
+    title: "Plantilla de ejemplo",
+  });
+}
+
 async function newProject() {
   const ok = await confirmDiscard();
   if (!ok) return;
@@ -1362,7 +1388,7 @@ async function newProject() {
   app.mermaidCache.clear();
   app.mermaidErrors.clear();
   app.mermaidQueue.clear();
-  app.editor.setValue("# Nuevo manuscrito\n\n");
+  app.editor.setValue("");
   app.zoomMode = "fit";
   app.currentPage = 1;
   syncSettingsControls();
@@ -1824,7 +1850,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.1.0"],
+    ["Versión", app.boot?.version || "0.1.1"],
     ["Motor", "Canvas 2D + Mermaid 12"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -2140,6 +2166,7 @@ function bindEditorEvents() {
   $("mainFile").addEventListener("click", () => app.editor?.focus());
   $("addMdBtn").addEventListener("click", openMarkdownFlow);
   $("emptyOpenBtn").addEventListener("click", openProjectFlow);
+  $("emptyExampleBtn").addEventListener("click", loadExampleTemplate);
 
   $("compileBtn").addEventListener("click", () => compile());
   $("exportPdfBtn").addEventListener("click", exportPDF);
@@ -2235,6 +2262,9 @@ function bindEditorEvents() {
     switch (button.dataset.action) {
       case "new":
         await newProject();
+        break;
+      case "example":
+        await loadExampleTemplate();
         break;
       case "open":
         await openProjectFlow();
@@ -2426,8 +2456,8 @@ async function boot() {
     app.initialDocument = markdown;
     app.restored = true;
   } else {
-    app.initialDocument = starterMd;
-    app.title = "Resumen I2 — Compacto";
+    app.initialDocument = exampleMd;
+    app.title = "Plantilla de ejemplo";
     app.projectPath = null;
     app.settings = { ...DEFAULT_SETTINGS, ...(globalSettings || {}) };
     app.assets = {};

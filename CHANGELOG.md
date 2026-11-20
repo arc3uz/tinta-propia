@@ -6,11 +6,24 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-20
+
 ### Added
 
 - Documentación de seguridad, código de conducta, changelog y avisos de terceros.
 - Plantillas de issues y pull requests.
 - Dependabot para npm, Cargo y GitHub Actions.
+- Acción **Menú → Cargar plantilla de ejemplo**.
+
+### Changed
+
+- La app ya no incluye el resumen de I2 como documento inicial.
+- El primer arranque carga una plantilla genérica de ejemplo.
+- El comando **Nuevo proyecto** queda completamente en blanco.
+
+### Removed
+
+- `src/assets/starter.md` y el manuscrito de ejemplo dentro del repositorio.
 
 ## [0.1.0] - 2026-11-20
 

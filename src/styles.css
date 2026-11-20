@@ -1059,6 +1059,12 @@ body.resizing {
   max-width: 300px;
   line-height: 1.5;
 }
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
 
 .preview-status {
   border-top: 1px solid #dfe5ec;

@@ -55,7 +55,7 @@
             </div>
           </div>
           <div class="project-title-wrap">
-            <input id="projectTitle" class="project-title" value="Resumen I2 — Compacto" spellcheck="false" aria-label="Nombre del proyecto" />
+            <input id="projectTitle" class="project-title" value="Sin título" spellcheck="false" aria-label="Nombre del proyecto" />
             <span class="save-state" id="saveState"><i></i><span>Guardado</span></span>
           </div>
         </div>
@@ -76,6 +76,7 @@
           </button>
           <div class="menu-popover" id="menuPopover" hidden>
             <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
+            <button data-action="example"><span>Cargar plantilla de ejemplo</span></button>
             <button data-action="open"><span>Abrir proyecto…</span><kbd>Ctrl O</kbd></button>
             <button data-action="open-md"><span>Importar Markdown…</span></button>
             <button data-action="save"><span>Guardar</span><kbd>Ctrl S</kbd></button>
@@ -200,7 +201,10 @@
               <div class="empty-icon"><svg><use href="#i-file"></use></svg></div>
               <h3>Tu manuscrito está en blanco</h3>
               <p>Empieza a escribir en el editor o abre un archivo Markdown.</p>
-              <button class="btn primary" id="emptyOpenBtn">Abrir un documento</button>
+              <div class="empty-actions">
+                <button class="btn primary" id="emptyOpenBtn">Abrir un documento</button>
+                <button class="btn ghost" id="emptyExampleBtn">Cargar plantilla</button>
+              </div>
             </div>
           </div>
           <div class="pane-status preview-status">
@@ -220,7 +224,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span>v0.1.0</span>
+          <span>v0.1.1</span>
         </div>
       </footer>
     </div>

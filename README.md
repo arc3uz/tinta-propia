@@ -69,7 +69,7 @@ El repositorio contiene todo lo necesario para compilar desde cero:
 
 - Código del frontend (`src/`), del backend Rust (`src-tauri/src/`) y configuración de Tauri.
 - `package-lock.json` y `src-tauri/Cargo.lock` para reproducir las versiones.
-- Fuentes, iconos, documento inicial, tests y workflows de CI/release.
+- Fuentes, iconos, plantilla de ejemplo, tests y workflows de CI/release.
 
 No se versionan los archivos que se generan al compilar:
 
@@ -218,12 +218,14 @@ El repositorio incluye dos workflows:
 
 ## Uso rápido
 
-1. Abre la app: la primera vez carga el resumen compacto como documento de ejemplo.
-2. Escribe o importa un `.md` desde **Menú → Importar Markdown**.
+1. Abre la app: la primera vez carga una plantilla simple de ejemplo.
+2. Edita la plantilla, empieza con **Menú → Nuevo proyecto** o importa un `.md` desde **Menú → Importar Markdown**.
 3. Ajusta el estilo en **Ajustes del manuscrito**; el espaciado entre palabras está arriba.
 4. Pulsa **Recompilar** o `Ctrl+Enter`.
 5. Guarda con `Ctrl+S` como proyecto `.papernotes`.
 6. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
+
+Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Menú → Cargar plantilla de ejemplo**. Para empezar completamente en blanco, usa **Menú → Nuevo proyecto**.
 
 ## Atajos
 
@@ -270,7 +272,7 @@ Un `.papernotes` es un JSON legible:
 ```json
 {
   "version": 1,
-  "title": "Resumen I2 — Compacto",
+  "title": "Mi manuscrito",
   "path": "/ruta/al/proyecto.papernotes",
   "document": "# Título\n\nTexto…",
   "settings": { "font": "MiLetra IIC2531", "pageSize": "a4" },
@@ -312,8 +314,8 @@ src/
   mermaid.js    render de Mermaid a imagen
   styles.css    interfaz tipo Overleaf
   fonts.css     fuentes locales
-  assets/       fuente calibrada, fuentes incluidas y documento inicial
-  assets/starter.md
+  assets/       fuente calibrada, fuentes incluidas y plantilla de ejemplo
+  assets/example.md
 
 src-tauri/
   src/lib.rs        comandos Tauri
