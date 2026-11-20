@@ -329,6 +329,15 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 - Fuente calibrada: `MiLetra IIC2531.ttf`.
 - Mermaid 12.3.0, CodeMirror 6, Tauri 2 y Rust.
 
+## Documentación
+
+- [Guía de contribución](CONTRIBUTING.md)
+- [Código de conducta](CODE_OF_CONDUCT.md)
+- [Política de seguridad](SECURITY.md)
+- [Historial de cambios](CHANGELOG.md)
+- [Avisos de terceros y licencias de fuentes](THIRD_PARTY_NOTICES.md)
+- [Licencia MIT](LICENSE)
+
 ## Licencia
 
 MIT. Ver [`LICENSE`](LICENSE).

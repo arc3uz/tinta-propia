@@ -13,3 +13,12 @@ Desktop.ini
 *.tmp
 .env
 .env.*
+coverage/
+.playwright/
+*.AppImage
+*.deb
+*.rpm
+*.msi
+*.exe
+*.dmg
+*.pdb

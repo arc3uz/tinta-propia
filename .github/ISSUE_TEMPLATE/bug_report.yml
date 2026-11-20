@@ -1,0 +1,88 @@
+name: Reporte de error
+description: Informa un fallo reproducible en Tinta Propia
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo de reportar un error.
+        Antes de continuar, revisa que no exista un issue parecido.
+
+        Si el problema es de seguridad, **no lo publiques aquí**:
+        usa la pestaña Security → Report a vulnerability.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Tinta Propia
+      description: Aparece en Acerca de o en el nombre del instalador.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma
+      options:
+        - Linux — AppImage
+        - Linux — .deb
+        - Linux — .rpm
+        - Windows — instalador NSIS
+        - Windows — MSI
+        - Navegador
+        - Desarrollo (npm run app:dev)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Sé lo más concreto posible.
+      placeholder: |
+        1. Abro la app
+        2. Importo un Markdown con...
+        3. Pulsos Recompilar
+        4. Ocurre...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultado actual
+      description: Incluye capturas o trazas si las tienes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: markdown
+    attributes:
+      label: Fragmento mínimo que lo provoca
+      description: Si es un problema de render, pega el Markdown o el bloque Mermaid mínimo.
+      render: markdown
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs o mensajes de error
+      description: Pega la consola o la salida de la terminal, si aplica.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmaciones
+      options:
+        - label: Revisé que no haya un issue abierto con el mismo problema.
+          required: true
+        - label: Estoy usando una versión reciente de Tinta Propia.
+          required: true

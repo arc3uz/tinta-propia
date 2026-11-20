@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentación
+    url: https://github.com/arc3uz/tinta-propia#readme
+    about: Instalación, compilación, atajos y funcionamiento general.
+  - name: Política de seguridad
+    url: https://github.com/arc3uz/tinta-propia/security/policy
+    about: Cómo reportar una vulnerabilidad de forma privada.

@@ -1,0 +1,58 @@
+name: Idea o mejora
+description: Propón una función o una mejora para Tinta Propia
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por la idea. Cuéntanos qué problema resuelve antes de proponer una implementación concreta.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      description: ¿Qué te resulta incómodo o qué no puedes hacer hoy?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Propuesta
+      description: Describe la solución que imaginas.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: ¿Probaste otra forma de resolverlo?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Importancia para ti
+      options:
+        - Me bloquea
+        - Me ahorraría mucho tiempo
+        - Sería útil
+        - Es un detalle estético
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Capturas, ejemplos o enlaces que ayuden a entender la idea.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmaciones
+      options:
+        - label: Revisé que no haya una idea parecida ya abierta.
+          required: true
+        - label: Entiendo que Tinta Propia es una app local y sin servicios externos.
+          required: true
