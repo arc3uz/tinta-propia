@@ -1,0 +1,105 @@
+@font-face {
+  font-family: "Papernotes";
+  src: url("./assets/fonts/Papernotes.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Papernotes";
+  src: url("./assets/fonts/Papernotes-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("./assets/fonts/Caveat.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Patrick Hand";
+  src: url("./assets/fonts/Patrick-Hand.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Kalam";
+  src: url("./assets/fonts/Kalam.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Shadows Into Light";
+  src: url("./assets/fonts/Shadows-Into-Light.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Indie Flower";
+  src: url("./assets/fonts/Indie-Flower.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Gochi Hand";
+  src: url("./assets/fonts/Gochi-Hand.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Sue Ellen Francisco";
+  src: url("./assets/fonts/Sue-Ellen-Francisco.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Over the Rainbow";
+  src: url("./assets/fonts/Over-the-Rainbow.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Annie Use Your Telescope";
+  src: url("./assets/fonts/Annie-Use-Your-Telescope.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Gloria Hallelujah";
+  src: url("./assets/fonts/Gloria-Hallelujah.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Reenie Beanie";
+  src: url("./assets/fonts/Reenie-Beanie.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Schoolbell";
+  src: url("./assets/fonts/Schoolbell.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Grape Nuts";
+  src: url("./assets/fonts/Grape-Nuts.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Mynerve";
+  src: url("./assets/fonts/Mynerve.ttf") format("truetype");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "MiLetra IIC2531";
+  src: url("./assets/fonts/MiLetra-IIC2531.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}

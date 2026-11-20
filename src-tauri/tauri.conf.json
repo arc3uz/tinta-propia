@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Papernotes Studio",
+  "version": "0.1.0",
+  "identifier": "cl.uchile.papernotes.studio",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Papernotes Studio",
+        "width": 1480,
+        "height": 920,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "dragDropEnabled": false,
+        "backgroundColor": "#eef1f5"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Manuscritos con tu propia letra",
+    "longDescription": "Editor local de manuscritos con letra calibrada, diagramas Mermaid, tablas, callouts y exportación a PDF.",
+    "copyright": "Papernotes"
+  }
+}

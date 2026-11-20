@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Publicar (${{ matrix.artifact }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact: linux
+            bundles: appimage,deb,rpm
+          - os: windows-latest
+            artifact: windows
+            bundles: nsis,msi
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Dependencias de Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            patchelf \
+            rpm
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Caché de Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Construir y publicar
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Papernotes Studio ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+          args: --bundles ${{ matrix.bundles }}
+          releaseBody: |
+            ## Papernotes Studio ${{ github.ref_name }}
+
+            Aplicación de escritorio para escribir manuscritos con tu propia letra.
+            Todo funciona de forma local, sin cuentas ni conexión a internet.
+
+            ### Instaladores
+
+            - **Linux:** AppImage, `.deb` y `.rpm`.
+            - **Windows 10/11:** instalador NSIS (`.exe`) y MSI (`.msi`).
+
+            Los instaladores de Windows incluyen WebView2 en modo offline.
+            No están firmados digitalmente, así que SmartScreen puede pedir
+            confirmación.
+
+            ### Notas
+
+            - La primera vez que se abre un documento con diagramas Mermaid,
+              se dibujan en segundo plano.
+            - El autoguardado vive en la carpeta de datos de la aplicación.
+            - Los proyectos se guardan como archivos `.papernotes`.

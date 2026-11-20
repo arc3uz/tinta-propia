@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>Papernotes Studio</title>
+  </head>
+  <body>
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
+      <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h6" /></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M7 3v5h9V3M7 15h10v6H7z" /></symbol>
+      <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.36a1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.36a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.64a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.36 9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 11l5 5 5-5M5 21h14" /></symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></symbol>
+      <symbol id="i-zoom-in" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6" /></symbol>
+      <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5L21 21M7.5 10.5h6" /></symbol>
+      <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" /></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" /></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.34 5.66M20 5v6h-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+      <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.2L2.7 18a2 2 0 0 0 1.74 3h15.12a2 2 0 0 0 1.74-3L13.7 4.2a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 15l-5-5L5 21" /></symbol>
+      <symbol id="i-diagram" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="5" rx="1" /><rect x="15" y="16" width="6" height="5" rx="1" /><rect x="3" y="16" width="6" height="5" rx="1" /><path d="M9 5.5h4a2 2 0 0 1 2 2V16M6 8v8" /></symbol>
+      <symbol id="i-break" viewBox="0 0 24 24"><path d="M4 5h16M4 10h7M13 10h7M4 15h16M4 20h16" /></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M7 7l1 13h8l1-13M10 11v5M14 11v5" /></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></symbol>
+      <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4.5-1 10-10a2.12 2.12 0 0 0-3-3l-10 10zM13.5 7.5l3 3" /></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" fill="currentColor" stroke="none" /><circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="4.5" cy="18" r="1" fill="currentColor" stroke="none" /></symbol>
+      <symbol id="i-checklist" viewBox="0 0 24 24"><rect x="3" y="4.5" width="6" height="6" rx="1.2" /><path d="M4.6 7.5l1.3 1.3 2-2.4M13 7.5h8M13 16.5h8" /><rect x="3" y="13.5" width="6" height="6" rx="1.2" /></symbol>
+      <symbol id="i-quote" viewBox="0 0 24 24"><path d="M9.5 7H5.5A1.5 1.5 0 0 0 4 8.5v4A1.5 1.5 0 0 0 5.5 14H8v2.5A2.5 2.5 0 0 1 5.5 19M20.5 7h-4A1.5 1.5 0 0 0 15 8.5v4a1.5 1.5 0 0 0 1.5 1.5H19v2.5A2.5 2.5 0 0 1 16.5 19" /></symbol>
+      <symbol id="i-callout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M12 8.5v4.2M12 16.2h.01" /></symbol>
+      <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9.5h18M9 9.5V20M15 9.5V20" /></symbol>
+    </svg>
+
+    <div class="app-shell" id="appShell">
+      <header class="topbar">
+        <div class="tb-left">
+          <button class="tb-icon" id="sidebarToggle" title="Mostrar u ocultar panel (Ctrl+\\)" aria-label="Alternar panel">
+            <svg><use href="#i-panel"></use></svg>
+          </button>
+          <div class="brand">
+            <div class="brand-mark">P</div>
+            <div class="brand-copy">
+              <span class="brand-name">Papernotes</span>
+              <span class="brand-sub">Studio</span>
+            </div>
+          </div>
+          <div class="project-title-wrap">
+            <input id="projectTitle" class="project-title" value="Resumen I2 — Compacto" spellcheck="false" aria-label="Nombre del proyecto" />
+            <span class="save-state" id="saveState"><i></i><span>Guardado</span></span>
+          </div>
+        </div>
+        <div class="tb-center">
+          <button class="compile-btn" id="compileBtn" title="Recompilar manuscrito (Ctrl+Enter)">
+            <svg class="compile-icon"><use href="#i-play"></use></svg>
+            <span class="compile-label">Recompilar</span>
+          </button>
+        </div>
+        <div class="tb-right">
+          <button class="tb-btn" id="exportPdfBtn" title="Exportar PDF">
+            <svg><use href="#i-download"></use></svg>
+            <span>PDF</span>
+          </button>
+          <button class="tb-btn" id="menuBtn" title="Menú del proyecto">
+            <svg><use href="#i-menu"></use></svg>
+            <span>Menú</span>
+          </button>
+          <div class="menu-popover" id="menuPopover" hidden>
+            <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
+            <button data-action="open"><span>Abrir proyecto…</span><kbd>Ctrl O</kbd></button>
+            <button data-action="open-md"><span>Importar Markdown…</span></button>
+            <button data-action="save"><span>Guardar</span><kbd>Ctrl S</kbd></button>
+            <button data-action="save-as"><span>Guardar como…</span><kbd>Ctrl ⇧ S</kbd></button>
+            <button data-action="export-md"><span>Exportar Markdown…</span></button>
+            <hr />
+            <button data-action="insert-image"><span>Insertar imagen…</span></button>
+            <button data-action="insert-mermaid"><span>Insertar diagrama Mermaid…</span></button>
+            <button data-action="page-break"><span>Insertar salto de página</span></button>
+            <hr />
+            <button data-action="settings"><span>Ajustes del manuscrito</span><kbd>Ctrl ,</kbd></button>
+            <button data-action="data-dir"><span>Abrir carpeta de datos</span></button>
+            <button data-action="shortcuts"><span>Atajos de teclado</span><kbd>?</kbd></button>
+            <button data-action="about"><span>Acerca de Papernotes Studio</span></button>
+            <hr />
+            <button data-action="quit"><span>Salir de Papernotes Studio</span><kbd>Ctrl Q</kbd></button>
+          </div>
+        </div>
+        <div class="compile-progress" id="compileProgress"></div>
+      </header>
+
+      <div class="workspace" id="workspace">
+        <aside class="sidebar" id="sidebar">
+          <div class="sidebar-head">
+            <span class="sidebar-label">Proyecto</span>
+            <div class="sidebar-actions">
+              <button class="mini-btn" id="newBtn" title="Nuevo proyecto"><svg><use href="#i-plus"></use></svg></button>
+              <button class="mini-btn" id="openBtn" title="Abrir proyecto"><svg><use href="#i-folder"></use></svg></button>
+              <button class="mini-btn" id="saveBtn" title="Guardar"><svg><use href="#i-save"></use></svg></button>
+            </div>
+          </div>
+          <div class="sidebar-section files-section">
+            <div class="section-title"><span>Archivos</span><span class="section-count" id="fileCount">1</span></div>
+            <button class="file-item active" id="mainFile">
+              <svg class="file-icon"><use href="#i-file"></use></svg>
+              <span class="file-name" id="mainFileName">documento.md</span>
+              <span class="dirty-dot" id="dirtyDot" hidden></span>
+            </button>
+            <div class="file-meta" id="fileMeta">Markdown · 0 KB</div>
+            <button class="file-item ghost" id="addMdBtn">
+              <svg class="file-icon"><use href="#i-plus"></use></svg>
+              <span class="file-name">Importar otro .md</span>
+            </button>
+          </div>
+          <div class="sidebar-section outline-section">
+            <div class="section-title"><span>Esquema</span><span class="section-count" id="outlineCount">0</span></div>
+            <div class="outline-list" id="outlineList">
+              <div class="outline-empty">Los títulos del documento aparecerán aquí.</div>
+            </div>
+          </div>
+          <div class="sidebar-foot">
+            <button class="sidebar-settings" id="openSettingsBtn">
+              <svg><use href="#i-settings"></use></svg>
+              <span>Ajustes del manuscrito</span>
+            </button>
+            <div class="sidebar-hint">100 % local · sin internet</div>
+          </div>
+        </aside>
+
+        <main class="editor-pane" id="editorPane">
+          <div class="editor-tabs">
+            <div class="editor-tab active">
+              <svg><use href="#i-file"></use></svg>
+              <span id="tabTitle">documento.md</span>
+              <span class="tab-dot" id="tabDot" hidden></span>
+            </div>
+            <span class="editor-mode">Markdown</span>
+          </div>
+          <div class="editor-toolbar" id="editorToolbar">
+            <button class="fmt-btn" data-format="h2" title="Título de sección">H2</button>
+            <button class="fmt-btn" data-format="bold" title="Negrita (Ctrl+B)"><b>B</b></button>
+            <button class="fmt-btn" data-format="italic" title="Cursiva (Ctrl+I)"><i>I</i></button>
+            <button class="fmt-btn" data-format="strike" title="Tachado"><s>S</s></button>
+            <button class="fmt-btn mono" data-format="code" title="Código (Ctrl+E)">&lt;/&gt;</button>
+            <button class="fmt-btn" data-format="link" title="Enlace">↗</button>
+            <span class="fmt-sep"></span>
+            <button class="fmt-btn" data-format="list" title="Lista"><svg><use href="#i-list"></use></svg></button>
+            <button class="fmt-btn" data-format="check" title="Lista de tareas"><svg><use href="#i-checklist"></use></svg></button>
+            <button class="fmt-btn" data-format="quote" title="Cita"><svg><use href="#i-quote"></use></svg></button>
+            <button class="fmt-btn" data-format="callout" title="Callout"><svg><use href="#i-callout"></use></svg></button>
+            <button class="fmt-btn" data-format="table" title="Tabla"><svg><use href="#i-table"></use></svg></button>
+            <span class="fmt-sep"></span>
+            <button class="fmt-btn" data-format="image" title="Insertar imagen"><svg><use href="#i-image"></use></svg></button>
+            <button class="fmt-btn" data-format="mermaid" title="Insertar diagrama Mermaid"><svg><use href="#i-diagram"></use></svg></button>
+            <button class="fmt-btn" data-format="pagebreak" title="Salto de página"><svg><use href="#i-break"></use></svg></button>
+          </div>
+          <div class="editor-host" id="editorHost"></div>
+          <div class="pane-status">
+            <span id="cursorState">Ln 1, Col 1</span>
+            <span class="pane-status-right"><span id="wordCount">0 palabras</span><span id="fileSize">0 KB</span></span>
+          </div>
+        </main>
+
+        <div class="splitter" id="splitter" title="Arrastrar para cambiar el tamaño"></div>
+
+        <section class="preview-pane" id="previewPane">
+          <div class="preview-toolbar">
+            <div class="pt-group">
+              <button class="tool-btn" id="zoomOut" title="Reducir"><svg><use href="#i-zoom-out"></use></svg></button>
+              <button class="zoom-label" id="zoomLabel" title="Restablecer zoom">100 %</button>
+              <button class="tool-btn" id="zoomIn" title="Ampliar"><svg><use href="#i-zoom-in"></use></svg></button>
+              <button class="tool-btn" id="fitWidth" title="Ajustar al ancho"><svg><use href="#i-fit"></use></svg></button>
+            </div>
+            <div class="pt-group page-nav">
+              <button class="tool-btn" id="prevPage" title="Página anterior"><svg><use href="#i-chevron-left"></use></svg></button>
+              <span class="page-indicator"><input id="pageInput" value="1" inputmode="numeric" aria-label="Página actual" /> <span id="pageTotal">/ 0</span></span>
+              <button class="tool-btn" id="nextPage" title="Página siguiente"><svg><use href="#i-chevron-right"></use></svg></button>
+            </div>
+            <div class="pt-group">
+              <span class="preview-size" id="previewSize">A4</span>
+              <button class="tool-btn" id="exportPdfBtn2" title="Exportar PDF"><svg><use href="#i-download"></use></svg></button>
+              <button class="tool-btn" id="previewSettingsBtn" title="Ajustes del manuscrito"><svg><use href="#i-settings"></use></svg></button>
+            </div>
+          </div>
+          <div class="preview-scroll" id="previewScroll">
+            <div class="preview-loading" id="previewLoading">
+              <span class="spinner"></span>
+              <p>Preparando el manuscrito…</p>
+            </div>
+            <div class="preview-pages" id="previewPages"></div>
+            <div class="preview-empty" id="previewEmpty" hidden>
+              <div class="empty-icon"><svg><use href="#i-file"></use></svg></div>
+              <h3>Tu manuscrito está en blanco</h3>
+              <p>Empieza a escribir en el editor o abre un archivo Markdown.</p>
+              <button class="btn primary" id="emptyOpenBtn">Abrir un documento</button>
+            </div>
+          </div>
+          <div class="pane-status preview-status">
+            <span id="compileState"><span class="status-dot ok"></span> Listo</span>
+            <span class="pane-status-right"><span id="pageCountStatus">0 páginas</span><span id="paperInfo">A4 · 210 × 297 mm</span></span>
+          </div>
+        </section>
+      </div>
+
+      <footer class="statusbar">
+        <div class="sb-left">
+          <span class="sb-brand"><span class="brand-dot"></span> Papernotes Studio</span>
+          <span class="sb-sep"></span>
+          <span id="sbFile">Sin título</span>
+          <span class="sb-muted" id="sbPath">sin guardar</span>
+        </div>
+        <div class="sb-right">
+          <span id="sbCompile">Motor listo</span>
+          <span class="sb-sep"></span>
+          <span>v0.1.0</span>
+        </div>
+      </footer>
+    </div>
+
+    <aside class="drawer" id="settingsDrawer" aria-label="Ajustes del manuscrito">
+      <div class="drawer-head">
+        <div>
+          <h2>Ajustes del manuscrito</h2>
+          <p>Se guardan con el proyecto.</p>
+        </div>
+        <button class="icon-btn" id="drawerClose" title="Cerrar"><svg><use href="#i-x"></use></svg></button>
+      </div>
+      <div class="drawer-scroll">
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Espaciado</h3>
+          <p class="setting-hint">La separación entre palabras es el ajuste que más cambia la lectura.</p>
+          <div class="control-row">
+            <label for="wordSpacing">Entre palabras</label>
+            <output id="wordSpacingVal">1.30×</output>
+          </div>
+          <input id="wordSpacing" type="range" min="0.70" max="2.00" step="0.05" value="1.30" />
+          <div class="chips">
+            <button type="button" class="chip" data-word="1.15">Compacto</button>
+            <button type="button" class="chip" data-word="1.30">Normal</button>
+            <button type="button" class="chip" data-word="1.45">Amplio</button>
+          </div>
+          <div class="control-row spaced">
+            <label for="tracking">Entre letras</label>
+            <output id="trackingVal">1.05×</output>
+          </div>
+          <input id="tracking" type="range" min="0.85" max="1.10" step="0.01" value="1.05" />
+        </section>
+
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Hoja</h3>
+          <label class="select-label" for="pageSize">Tamaño de hoja</label>
+          <select id="pageSize">
+            <option value="a4" selected>A4 · 210 × 297 mm</option>
+            <option value="letter">Carta · 216 × 279 mm</option>
+            <option value="legal">Legal · 216 × 356 mm</option>
+            <option value="a5">A5 · 148 × 210 mm</option>
+            <option value="oficio">Oficio · 216 × 330 mm</option>
+          </select>
+          <div class="two-col">
+            <div>
+              <label class="select-label" for="margins">Márgenes</label>
+              <select id="margins">
+                <option value="minimos">Muy pequeños</option>
+                <option value="pequenos" selected>Pequeños</option>
+                <option value="normales">Normales</option>
+                <option value="amplios">Amplios</option>
+              </select>
+            </div>
+            <div>
+              <label class="select-label" for="paperColor">Color del papel</label>
+              <select id="paperColor">
+                <option value="cream">Crema</option>
+                <option value="white" selected>Blanco</option>
+                <option value="yellow">Amarillo</option>
+              </select>
+            </div>
+          </div>
+          <label class="select-label" for="paper">Guías del papel</label>
+          <select id="paper">
+            <option value="plain" selected>Liso (sin líneas)</option>
+            <option value="ruled">Rayado</option>
+            <option value="grid">Cuadriculado</option>
+            <option value="dots">Punteado</option>
+          </select>
+        </section>
+
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Letra y tinta</h3>
+          <label class="select-label" for="preset">Estilo general</label>
+          <select id="preset">
+            <option value="apunte" selected>Apunte IIC2531</option>
+            <option value="natural">Natural</option>
+            <option value="rapido">Rápido</option>
+            <option value="cuidadoso">Cuidadoso</option>
+            <option value="desordenado">Desordenado</option>
+          </select>
+          <label class="select-label" for="font">Fuente manuscrita</label>
+          <select id="font"></select>
+          <button class="btn ghost small full" id="importFontBtn">Importar una fuente TTF / OTF</button>
+          <div class="two-col spaced">
+            <div>
+              <label class="select-label" for="ink">Tinta del cuerpo</label>
+              <select id="ink">
+                <option value="blue" selected>Azul</option>
+                <option value="black">Negro</option>
+                <option value="red">Rojo</option>
+                <option value="pencil">Lápiz</option>
+              </select>
+            </div>
+            <div>
+              <label class="select-label" for="headingInk">Tinta de títulos</label>
+              <select id="headingInk">
+                <option value="red" selected>Rojo</option>
+                <option value="body">Igual al cuerpo</option>
+                <option value="blue">Azul</option>
+                <option value="black">Negro</option>
+                <option value="green">Verde</option>
+              </select>
+            </div>
+          </div>
+          <div class="control-row spaced">
+            <label for="size">Tamaño</label>
+            <output id="sizeVal">26 px</output>
+          </div>
+          <input id="size" type="range" min="20" max="38" step="1" value="26" />
+        </section>
+
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Realismo</h3>
+          <div class="control-row">
+            <label for="realism">Nivel</label>
+            <output id="realismVal">24 %</output>
+          </div>
+          <input id="realism" type="range" min="0" max="100" step="1" value="24" />
+          <div class="two-col spaced">
+            <div>
+              <div class="control-row"><label for="jitter">Temblor</label><output id="jitterVal">0.8</output></div>
+              <input id="jitter" type="range" min="0" max="4" step="0.1" value="0.8" />
+            </div>
+            <div>
+              <div class="control-row"><label for="leading">Interlineado</label><output id="leadingVal">1.32×</output></div>
+              <input id="leading" type="range" min="1.15" max="1.8" step="0.05" value="1.32" />
+            </div>
+          </div>
+          <details class="advanced">
+            <summary>Más opciones de realismo</summary>
+            <div class="two-col">
+              <div>
+                <div class="control-row"><label for="pressure">Presión</label><output id="pressureVal">72 %</output></div>
+                <input id="pressure" type="range" min="0" max="100" step="1" value="72" />
+              </div>
+              <div>
+                <div class="control-row"><label for="slant">Inclinación</label><output id="slantVal">0.8°</output></div>
+                <input id="slant" type="range" min="-8" max="8" step="0.5" value="0.8" />
+              </div>
+            </div>
+            <div class="two-col">
+              <div>
+                <div class="control-row"><label for="bleed">Sangrado</label><output id="bleedVal">0.2</output></div>
+                <input id="bleed" type="range" min="0" max="1.5" step="0.1" value="0.2" />
+              </div>
+              <div>
+                <label class="select-label" for="seed">Semilla</label>
+                <input id="seed" type="number" value="1847" min="0" max="999999" />
+              </div>
+            </div>
+            <button class="btn ghost small full" id="regenSeed"><svg><use href="#i-refresh"></use></svg> Regenerar temblor</button>
+          </details>
+        </section>
+
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Formato</h3>
+          <label class="checkline">
+            <input id="markdown" type="checkbox" checked />
+            <span><b>Interpretar Markdown</b><small>Títulos, listas, tablas, callouts, código y enlaces.</small></span>
+          </label>
+          <label class="checkline">
+            <input id="numberPages" type="checkbox" checked />
+            <span><b>Numerar páginas e índice</b><small>Pie “n / total” y números en el índice.</small></span>
+          </label>
+          <p class="setting-hint small">El tamaño y los márgenes se calculan sobre la hoja elegida.</p>
+        </section>
+      </div>
+      <div class="drawer-foot">
+        <button class="btn ghost" id="resetSettings">Restablecer</button>
+        <button class="btn primary" id="applyApunte">Apunte IIC2531</button>
+      </div>
+    </aside>
+
+    <div class="overlay" id="drawerOverlay" hidden></div>
+    <div class="modal-root" id="modalRoot"></div>
+    <div class="toast-root" id="toastRoot"></div>
+    <input id="hiddenImageInput" type="file" accept="image/*" multiple hidden />
+    <input id="hiddenFontInput" type="file" accept=".ttf,.otf,.woff,.woff2" hidden />
+
+    <div class="boot-screen" id="bootScreen">
+      <div class="boot-card">
+        <div class="boot-mark">P</div>
+        <h1>Papernotes Studio</h1>
+        <p>Preparando tu manuscrito…</p>
+        <div class="boot-bar"><span></span></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
