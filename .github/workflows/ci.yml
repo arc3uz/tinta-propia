@@ -68,6 +68,33 @@ jobs:
       - name: Pruebas Rust
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib
 
+  check-windows:
+    name: Compilación Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Caché de Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar compilación
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
   bundle:
     name: Paquetes (${{ matrix.artifact }})
     if: github.event_name != 'pull_request'
