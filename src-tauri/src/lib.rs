@@ -7,7 +7,7 @@ use pdf::PdfExportRequest;
 use serde::Serialize;
 use serde_json::Value;
 use std::path::Path;
-use storage::{LibraryProject, RecentProject};
+use storage::{LibrarySnapshot, RecentProject};
 use tauri::{AppHandle, Manager};
 
 #[derive(Serialize)]
@@ -103,8 +103,42 @@ fn save_settings(app: AppHandle, settings: Value) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn list_library(app: AppHandle) -> Result<Vec<LibraryProject>, String> {
+fn list_library(app: AppHandle) -> Result<LibrarySnapshot, String> {
     storage::list_library(&app)
+}
+
+#[tauri::command]
+fn create_library_folder(app: AppHandle, folder: String) -> Result<String, String> {
+    storage::create_library_folder(&app, &folder)
+}
+
+#[tauri::command]
+fn rename_library_folder(
+    app: AppHandle,
+    old_folder: String,
+    new_folder: String,
+) -> Result<(), String> {
+    storage::rename_library_folder(&app, &old_folder, &new_folder)
+}
+
+#[tauri::command]
+fn delete_library_folder(app: AppHandle, folder: String) -> Result<(), String> {
+    storage::delete_library_folder(&app, &folder)
+}
+
+#[tauri::command]
+fn set_project_title(app: AppHandle, path: String, title: String) -> Result<(), String> {
+    storage::set_project_title(&app, &path, &title)
+}
+
+#[tauri::command]
+fn duplicate_project(app: AppHandle, path: String) -> Result<String, String> {
+    storage::duplicate_project(&app, &path)
+}
+
+#[tauri::command]
+fn trash_project(app: AppHandle, path: String) -> Result<String, String> {
+    storage::trash_project(&app, &path)
 }
 
 #[tauri::command]
@@ -203,7 +237,13 @@ pub fn run() {
             save_settings,
             recent_projects,
             list_library,
+            create_library_folder,
+            rename_library_folder,
+            delete_library_folder,
             set_project_tags,
+            set_project_title,
+            duplicate_project,
+            trash_project,
             move_project_to_folder,
             touch_recent,
             remove_recent,

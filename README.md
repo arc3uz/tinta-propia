@@ -34,6 +34,8 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Importación de Markdown y de fuentes TTF/OTF/WOFF.
 - Proyectos recientes y carpeta de datos accesible desde el menú.
 - **Inicio** como vista propia, con accesos rápidos, biblioteca de proyectos en árbol y recientes.
+- Buscador, filtros por etiqueta, orden por nombre/fecha y gestión de carpetas en la biblioteca.
+- Renombrar, duplicar y eliminar proyectos, con papelera interna.
 - Tamaño de letra ajustable entre 12 y 38 px, con atajos de 12, 14, 16, 20 y 26 px.
 - Pantalla completa con el botón de la barra superior o `F11`.
 - Atajos de teclado y cierre con `Ctrl+Q` guardando la sesión.
@@ -234,7 +236,7 @@ El repositorio incluye dos workflows:
 6. Guarda con `Ctrl+S` como proyecto `.papernotes`.
 7. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
 
-Puedes volver a la pantalla de inicio con **Menú → Inicio**. Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
+Puedes volver a la pantalla de inicio con **Menú → Inicio**. Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Puedes buscar por título o etiqueta, filtrar por etiqueta, ordenar por nombre o fecha, crear carpetas y renombrar, duplicar o eliminar proyectos. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
 
 **Guardar como** usa el diálogo nativo del sistema y propone la carpeta de Documentos. Si guardas un proyecto fuera de la biblioteca, aparecerá en **Recientes fuera de la biblioteca** con un botón para moverlo a ella; el botón de la biblioteca vacía guarda directamente en la carpeta de proyectos. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
 
@@ -273,7 +275,8 @@ autosave.json     sesión actual
 recent.json       proyectos recientes
 settings.json     ajustes globales
 fonts/            fuentes importadas
-projects/         carpeta sugerida para proyectos
+projects/         biblioteca de proyectos y carpetas
+trash/            proyectos eliminados (papelera interna)
 ```
 
 El menú **Abrir carpeta de datos** lleva directo a esa ubicación.

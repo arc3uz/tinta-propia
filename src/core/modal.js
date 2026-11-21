@@ -193,3 +193,61 @@ export function showProgress(title, subtitle) {
     },
   };
 }
+
+/**
+ * Pide un valor de texto en un modal.
+ * @returns {Promise<string|null>} El texto limpio o `null` si se cancela.
+ */
+export function promptText({
+  title,
+  subtitle = "",
+  label,
+  value = "",
+  placeholder = "",
+  confirmLabel = "Guardar",
+}) {
+  return new Promise((resolve) => {
+    const input = createEl("input", { type: "text", placeholder });
+    input.value = value;
+    const body = createEl("div", {}, [
+      createEl("label", { class: "select-label", for: "prompt-text-input", text: label }),
+      input,
+    ]);
+    input.id = "prompt-text-input";
+    let decided = false;
+    showModal({
+      title,
+      subtitle,
+      body,
+      narrow: true,
+      actions: [
+        {
+          label: "Cancelar",
+          kind: "ghost",
+          onClick: (close) => {
+            decided = true;
+            close();
+            resolve(null);
+          },
+        },
+        {
+          label: confirmLabel,
+          kind: "primary",
+          onClick: (close) => {
+            decided = true;
+            const text = input.value.trim();
+            close();
+            resolve(text || null);
+          },
+        },
+      ],
+      onClose: () => {
+        if (!decided) resolve(null);
+      },
+    });
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 40);
+  });
+}

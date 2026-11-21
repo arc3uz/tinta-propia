@@ -7,24 +7,32 @@ import {
   formatRelative,
   svgIcon,
 } from "../core/utils.js";
-import { showModal, toast } from "../core/modal.js";
+import { confirmAction, promptText, showModal, toast } from "../core/modal.js";
 import { openFolder } from "../core/system.js";
 
 /**
- * Biblioteca de proyectos y pantalla de inicio.
+ * Biblioteca de proyectos y página de inicio.
  *
  * La biblioteca vive en la carpeta `projects/` de los datos de la aplicación.
- * Se muestra como un árbol de carpetas para que el usuario pueda ordenar,
- * etiquetar y abrir sus proyectos sin salir de la app.
+ * Se muestra como un árbol de carpetas para que el usuario pueda buscar,
+ * ordenar, etiquetar y abrir sus proyectos sin salir de la app.
  */
 
+let libraryQuery = "";
+let libraryTag = "";
+let librarySort = "name";
+
 async function loadLibraryProjects() {
-  if (!app.isTauri) return [];
+  if (!app.isTauri) return { projects: [], folders: [] };
   try {
-    return await invoke("list_library");
+    const snapshot = await invoke("list_library");
+    return {
+      projects: Array.isArray(snapshot?.projects) ? snapshot.projects : [],
+      folders: Array.isArray(snapshot?.folders) ? snapshot.folders : [],
+    };
   } catch (error) {
     console.warn("No se pudo cargar la biblioteca", error);
-    return [];
+    return { projects: [], folders: [] };
   }
 }
 
@@ -43,41 +51,84 @@ function countLibraryProjects(folder) {
   return count;
 }
 
-/** Convierte la lista plana de proyectos en un árbol de carpetas. */
-function buildLibraryTree(projects) {
-  const root = { folders: new Map(), projects: [] };
+function uniqueTags(projects) {
+  const tags = new Set();
   for (const project of projects) {
-    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
+    for (const tag of project.tags || []) tags.add(tag);
+  }
+  return [...tags].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
+function folderPath(folder) {
+  const root = (app.boot?.projectsDir || "").replace(/[\\/]$/, "");
+  if (!root) return folder;
+  const separator = root.includes("\\") ? "\\" : "/";
+  return folder ? `${root}${separator}${folder.split("/").join(separator)}` : root;
+}
+
+function replaceFolderPrefix(path, oldFolder, newFolder) {
+  if (!path) return path;
+  const oldPrefix = folderPath(oldFolder);
+  const newPrefix = folderPath(newFolder);
+  const separator = oldPrefix.includes("\\") ? "\\" : "/";
+  if (!path.startsWith(`${oldPrefix}${separator}`)) return path;
+  return `${newPrefix}${path.slice(oldPrefix.length)}`;
+}
+
+/** Convierte la lista plana de proyectos y carpetas en un árbol. */
+function buildLibraryTree(projects, folders) {
+  const root = { folders: new Map(), projects: [] };
+  const ensureNode = (parts) => {
     let node = root;
+    let path = "";
     for (const part of parts) {
+      path = path ? `${path}/${part}` : part;
       if (!node.folders.has(part)) {
-        node.folders.set(part, { name: part, folders: new Map(), projects: [] });
+        node.folders.set(part, { name: part, path, folders: new Map(), projects: [] });
       }
       node = node.folders.get(part);
     }
-    node.projects.push(project);
+    return node;
+  };
+  for (const folder of folders) {
+    const parts = String(folder || "").split("/").filter(Boolean);
+    if (parts.length) ensureNode(parts);
+  }
+  for (const project of projects) {
+    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
+    ensureNode(parts).projects.push(project);
   }
   return root;
 }
 
-function sortLibraryTree(node) {
-  node.projects.sort((a, b) =>
-    (a.title || "").localeCompare(b.title || "", "es", { sensitivity: "base" })
-  );
-  for (const folder of node.folders.values()) sortLibraryTree(folder);
+function sortLibraryTree(node, sort) {
+  node.projects.sort((a, b) => {
+    if (sort === "recent") {
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    }
+    return (a.title || "").localeCompare(b.title || "", "es", { sensitivity: "base" });
+  });
+  for (const folder of node.folders.values()) sortLibraryTree(folder, sort);
 }
 
-function collectLibraryFolders(projects) {
-  const folders = new Set();
-  for (const project of projects) {
-    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
-    let current = "";
-    for (const part of parts) {
-      current = current ? `${current}/${part}` : part;
-      folders.add(current);
-    }
+function pruneLibraryTree(node) {
+  for (const [name, child] of [...node.folders]) {
+    pruneLibraryTree(child);
+    if (!child.projects.length && !child.folders.size) node.folders.delete(name);
   }
-  return [...folders].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
+function projectMatches(project) {
+  const query = libraryQuery.trim().toLowerCase();
+  const tags = Array.isArray(project.tags) ? project.tags : [];
+  if (libraryTag && !tags.some((tag) => tag.toLowerCase() === libraryTag.toLowerCase())) {
+    return false;
+  }
+  if (!query) return true;
+  return (
+    (project.title || "").toLowerCase().includes(query) ||
+    tags.some((tag) => tag.toLowerCase().includes(query))
+  );
 }
 
 function editProjectTags(project, refresh, deps) {
@@ -196,6 +247,94 @@ function moveProjectDialog(project, folders, refresh, deps) {
   return modal;
 }
 
+async function renameProject(project, refresh, deps) {
+  const title = await promptText({
+    title: "Renombrar proyecto",
+    subtitle: project.title || "Sin título",
+    label: "Nuevo nombre",
+    value: project.title || "",
+    confirmLabel: "Renombrar",
+  });
+  if (!title || title === project.title) return;
+  try {
+    await invoke("set_project_title", { path: project.path, title });
+    if (app.projectPath === project.path) {
+      app.title = title;
+      deps.updateTitleUI?.();
+      deps.scheduleAutosave?.(150);
+    }
+    toast("Proyecto renombrado.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo renombrar: ${error}`, { type: "error" });
+  }
+}
+
+async function duplicateProject(project, refresh) {
+  try {
+    await invoke("duplicate_project", { path: project.path });
+    toast("Proyecto duplicado.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo duplicar: ${error}`, { type: "error" });
+  }
+}
+
+async function trashProject(project, refresh) {
+  if (app.projectPath === project.path) {
+    toast("Cierra o cambia de proyecto antes de eliminarlo.", { type: "warn" });
+    return;
+  }
+  const ok = await confirmAction({
+    title: "Eliminar proyecto",
+    message: `“${project.title || "Sin título"}” se moverá a la papelera de Tinta Propia.`,
+    confirmLabel: "Mover a la papelera",
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await invoke("trash_project", { path: project.path });
+    toast("Proyecto movido a la papelera.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo eliminar: ${error}`, { type: "error" });
+  }
+}
+
+function showProjectActions(project, folders, refresh, deps) {
+  const body = createEl("div", { class: "project-actions" });
+  const add = (label, icon, action, danger = false) => {
+    const button = createEl("button", {
+      class: `project-action${danger ? " danger" : ""}`,
+      type: "button",
+    }, [
+      svgIcon(icon),
+      createEl("span", { text: label }),
+    ]);
+    button.addEventListener("click", async () => {
+      modal.close();
+      await action();
+    });
+    body.append(button);
+  };
+  const modal = showModal({
+    title: "Acciones del proyecto",
+    subtitle: project.title || "Sin título",
+    body,
+    narrow: true,
+    actions: [{ label: "Cerrar", kind: "ghost", onClick: (close) => close() }],
+  });
+  add("Renombrar", "pen", () => renameProject(project, refresh, deps));
+  add("Duplicar", "file", () => duplicateProject(project, refresh));
+  add("Mover a carpeta", "folder", () => moveProjectDialog(project, folders, refresh, deps));
+  add("Abrir carpeta contenedora", "external", () => openFolder(folderPath(project.folder || "")));
+  add("Eliminar", "trash", () => trashProject(project, refresh), true);
+  return modal;
+}
+
 function createLibraryRow(project, closeLibrary, refresh, folders, deps) {
   const row = createEl("div", { class: "library-project", title: project.path });
   const tags = Array.isArray(project.tags) ? project.tags : [];
@@ -236,16 +375,106 @@ function createLibraryRow(project, closeLibrary, refresh, folders, deps) {
       "button",
       {
         class: "icon-btn",
-        title: "Mover a carpeta",
-        "aria-label": `Mover ${project.title || "Sin título"} a una carpeta`,
+        title: "Acciones del proyecto",
+        "aria-label": `Acciones de ${project.title || "Sin título"}`,
       },
-      [svgIcon("folder")]
+      [svgIcon("more")]
     ),
   ]);
   actions.children[0].addEventListener("click", () => editProjectTags(project, refresh, deps));
-  actions.children[1].addEventListener("click", () => moveProjectDialog(project, folders, refresh, deps));
+  actions.children[1].addEventListener("click", () =>
+    showProjectActions(project, folders, refresh, deps)
+  );
   row.append(open, actions);
   return row;
+}
+
+const folderAction = (icon, title, handler) => {
+  const button = createEl(
+    "button",
+    {
+      class: "icon-btn",
+      type: "button",
+      title,
+      "aria-label": title,
+    },
+    [svgIcon(icon)]
+  );
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handler();
+  });
+  return button;
+};
+
+async function createFolder(refresh) {
+  const folder = await promptText({
+    title: "Nueva carpeta",
+    label: "Nombre de la carpeta",
+    placeholder: "Universidad/Cálculo",
+    confirmLabel: "Crear carpeta",
+  });
+  if (!folder) return;
+  try {
+    await invoke("create_library_folder", { folder });
+    toast("Carpeta creada.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo crear la carpeta: ${error}`, { type: "error" });
+  }
+}
+
+async function renameFolder(folder, refresh, deps) {
+  const newFolder = await promptText({
+    title: "Renombrar carpeta",
+    label: "Nuevo nombre o ruta",
+    value: folder.path,
+    confirmLabel: "Renombrar",
+  });
+  if (!newFolder || newFolder === folder.path) return;
+  try {
+    await invoke("rename_library_folder", {
+      oldFolder: folder.path,
+      newFolder,
+    });
+    if (app.projectPath) {
+      const nextPath = replaceFolderPrefix(app.projectPath, folder.path, newFolder);
+      if (nextPath !== app.projectPath) {
+        app.projectPath = nextPath;
+        deps.scheduleAutosave?.(100);
+      }
+    }
+    toast("Carpeta renombrada.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo renombrar la carpeta: ${error}`, { type: "error" });
+  }
+}
+
+async function deleteFolder(folder, refresh) {
+  const count = countLibraryProjects(folder);
+  if (count > 0) {
+    toast("La carpeta tiene proyectos. Muévelos antes de eliminarla.", { type: "warn" });
+    return;
+  }
+  const ok = await confirmAction({
+    title: "Eliminar carpeta",
+    message: `Se eliminará la carpeta vacía “${folder.path}”.`,
+    confirmLabel: "Eliminar carpeta",
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await invoke("delete_library_folder", { folder: folder.path });
+    toast("Carpeta eliminada.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo eliminar la carpeta: ${error}`, { type: "error" });
+  }
 }
 
 function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps) {
@@ -256,13 +485,18 @@ function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps
   for (const folder of sortedFolders) {
     const details = createEl("details", { class: "library-folder" });
     details.open = true;
+    const count = countLibraryProjects(folder);
+    const folderActions = createEl("span", { class: "library-folder-actions" }, [
+      folderAction("pen", "Renombrar carpeta", () => renameFolder(folder, refresh, deps)),
+      count === 0
+        ? folderAction("trash", "Eliminar carpeta", () => deleteFolder(folder, refresh))
+        : null,
+    ]);
     const summary = createEl("summary", {}, [
       svgIcon("folder"),
       createEl("span", { class: "library-folder-name", text: folder.name }),
-      createEl("span", {
-        class: "library-folder-count",
-        text: String(countLibraryProjects(folder)),
-      }),
+      createEl("span", { class: "library-folder-count", text: String(count) }),
+      folderActions,
     ]);
     const children = createEl("div", { class: "library-children" });
     renderLibraryNode(folder, children, closeLibrary, refresh, folders, deps);
@@ -275,19 +509,31 @@ function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps
   container.append(fragment);
 }
 
-function renderLibrary(container, projects, closeLibrary, refresh, deps) {
+function renderLibrary(container, snapshot, closeLibrary, refresh, deps) {
   container.innerHTML = "";
+  const projects = snapshot.projects || [];
+  const folders = snapshot.folders || [];
+  const tags = uniqueTags(projects);
+  const countLabel = createEl("small", { class: "library-count" });
+  const tree = createEl("div", { class: "library-tree" });
+  const tagFilters = createEl("div", { class: "library-tag-filters" });
+
   const head = createEl("div", { class: "library-head" }, [
     createEl("div", {}, [
       createEl("div", { class: "recent-title", text: "Biblioteca" }),
-      createEl("small", {
-        class: "library-count",
-        text: projects.length
-          ? `${projects.length} ${projects.length === 1 ? "proyecto" : "proyectos"}`
-          : "Sin proyectos guardados",
-      }),
+      countLabel,
     ]),
     createEl("div", { class: "library-head-actions" }, [
+      app.isTauri
+        ? createEl(
+            "button",
+            {
+              class: "btn ghost small",
+              onclick: () => createFolder(refresh),
+            },
+            [svgIcon("plus"), "Nueva carpeta"]
+          )
+        : null,
       app.isTauri
         ? createEl(
             "button",
@@ -300,9 +546,26 @@ function renderLibrary(container, projects, closeLibrary, refresh, deps) {
         : null,
     ]),
   ]);
-  container.append(head);
-  const tree = createEl("div", { class: "library-tree" });
-  if (!projects.length) {
+
+  const search = createEl("input", {
+    type: "search",
+    class: "library-search",
+    placeholder: "Buscar por título o etiqueta…",
+    "aria-label": "Buscar proyectos",
+  });
+  search.value = libraryQuery;
+  const sort = createEl(
+    "select",
+    { class: "library-sort", "aria-label": "Ordenar proyectos" },
+    [
+      createEl("option", { value: "name", text: "Nombre" }),
+      createEl("option", { value: "recent", text: "Reciente" }),
+    ]
+  );
+  sort.value = librarySort;
+  const filters = createEl("div", { class: "library-filters" }, [search, sort]);
+
+  const emptyState = () => {
     tree.append(
       createEl("div", { class: "library-empty" }, [
         svgIcon("folder"),
@@ -331,19 +594,69 @@ function renderLibrary(container, projects, closeLibrary, refresh, deps) {
           : null,
       ])
     );
-  } else {
-    const root = buildLibraryTree(projects);
-    sortLibraryTree(root);
-    renderLibraryNode(
-      root,
-      tree,
-      closeLibrary,
-      refresh,
-      collectLibraryFolders(projects),
-      deps
-    );
-  }
-  container.append(tree);
+  };
+
+  const updateTree = () => {
+    const filtered = projects.filter(projectMatches);
+    const root = buildLibraryTree(filtered, folders);
+    sortLibraryTree(root, librarySort);
+    if (libraryQuery.trim() || libraryTag) pruneLibraryTree(root);
+    tree.innerHTML = "";
+    countLabel.textContent =
+      filtered.length === projects.length
+        ? `${projects.length} ${projects.length === 1 ? "proyecto" : "proyectos"}`
+        : `${filtered.length} de ${projects.length}`;
+    if (!projects.length && !folders.length) {
+      emptyState();
+      return;
+    }
+    if (!filtered.length) {
+      tree.append(
+        createEl("div", { class: "library-empty" }, [
+          svgIcon("file"),
+          createEl("p", { text: "No hay proyectos que coincidan." }),
+          createEl("small", { text: "Prueba con otro título o etiqueta." }),
+        ])
+      );
+      return;
+    }
+    renderLibraryNode(root, tree, closeLibrary, refresh, folders, deps);
+  };
+
+  const updateTagChips = () => {
+    tagFilters.innerHTML = "";
+    if (!tags.length) {
+      tagFilters.hidden = true;
+      return;
+    }
+    tagFilters.hidden = false;
+    for (const tag of tags) {
+      const button = createEl("button", {
+        class: `chip${libraryTag === tag ? " is-active" : ""}`,
+        type: "button",
+        text: tag,
+      });
+      button.addEventListener("click", () => {
+        libraryTag = libraryTag === tag ? "" : tag;
+        updateTagChips();
+        updateTree();
+      });
+      tagFilters.append(button);
+    }
+  };
+
+  search.addEventListener("input", () => {
+    libraryQuery = search.value;
+    updateTree();
+  });
+  sort.addEventListener("change", () => {
+    librarySort = sort.value;
+    updateTree();
+  });
+
+  container.append(head, filters, tagFilters, tree);
+  updateTagChips();
+  updateTree();
 }
 
 function renderExternalRecents(container, projects, recent, closeLibrary, refresh, folders, deps) {
@@ -447,15 +760,15 @@ async function renderHome() {
   content.append(actions, columns);
 
   const refresh = async () => {
-    const [projects, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
-    renderLibrary(libraryPanel, projects, closeHomeView, refresh, homeDeps);
+    const [library, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
+    renderLibrary(libraryPanel, library, closeHomeView, refresh, homeDeps);
     renderExternalRecents(
       recentPanel,
-      projects,
+      library.projects,
       recent,
       closeHomeView,
       refresh,
-      collectLibraryFolders(projects),
+      library.folders,
       homeDeps
     );
     columns.classList.toggle("with-recents", !recentPanel.hidden);
@@ -477,6 +790,9 @@ export async function openHomeView(deps) {
     $("homeCloseBtn")?.addEventListener("click", closeHomeView);
     homeBound = true;
   }
+  libraryQuery = "";
+  libraryTag = "";
+  librarySort = "name";
   const workspace = $("workspace");
   if (workspace) workspace.hidden = true;
   view.hidden = false;

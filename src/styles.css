@@ -2208,6 +2208,92 @@ details.advanced[open] summary::after {
   align-items: center;
   gap: 6px;
 }
+.library-filters {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.library-search {
+  flex: 1;
+  min-width: 0;
+  height: 31px;
+  padding: 6px 9px;
+  border: 1px solid #d6dee8;
+  border-radius: 5px;
+  background: #fbfdff;
+  color: var(--ink-2);
+  font-size: 12px;
+  outline: none;
+}
+.library-search:focus {
+  border-color: #96bce4;
+  box-shadow: 0 0 0 3px rgba(29, 111, 220, 0.08);
+}
+.library-sort {
+  width: 124px;
+  flex: 0 0 auto;
+  height: 31px;
+  padding: 4px 24px 4px 8px;
+  font-size: 11px;
+}
+.library-tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.library-tag-filters[hidden] {
+  display: none;
+}
+.library-folder-actions {
+  display: flex;
+  gap: 1px;
+  margin-left: 2px;
+  opacity: 0;
+}
+.library-folder > summary:hover .library-folder-actions,
+.library-folder > summary:focus-within .library-folder-actions {
+  opacity: 1;
+}
+.library-folder-actions .icon-btn {
+  width: 22px;
+  height: 22px;
+}
+.project-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.project-action {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  font-size: 12px;
+}
+.project-action:hover {
+  background: #f1f5fa;
+  color: var(--navy);
+}
+.project-action svg {
+  width: 15px;
+  height: 15px;
+  color: #8d99a9;
+}
+.project-action.danger {
+  color: var(--red);
+}
+.project-action.danger svg {
+  color: var(--red);
+}
+.project-action.danger:hover {
+  background: var(--red-soft);
+}
 .library-tree {
   max-height: 360px;
   overflow: auto;

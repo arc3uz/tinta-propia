@@ -32,6 +32,8 @@ pub fn ensure_dirs(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("No se pudo crear la carpeta de proyectos: {e}"))?;
     fs::create_dir_all(dir.join("fonts"))
         .map_err(|e| format!("No se pudo crear la carpeta de fuentes: {e}"))?;
+    fs::create_dir_all(dir.join("trash"))
+        .map_err(|e| format!("No se pudo crear la carpeta de papelera: {e}"))?;
     Ok(dir)
 }
 
@@ -77,6 +79,13 @@ pub struct LibraryProject {
     pub tags: Vec<String>,
     pub updated_at: u64,
     pub size: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySnapshot {
+    pub projects: Vec<LibraryProject>,
+    pub folders: Vec<String>,
 }
 
 fn project_folder(root: &Path, path: &Path) -> String {
@@ -188,17 +197,58 @@ fn collect_library_projects(root: &Path, dir: &Path, out: &mut Vec<LibraryProjec
     }
 }
 
-pub fn list_library(app: &AppHandle) -> Result<Vec<LibraryProject>, String> {
+fn collect_library_folders(root: &Path, dir: &Path, out: &mut Vec<String>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let Ok(meta) = entry.metadata() else {
+            continue;
+        };
+        if !meta.is_dir() || meta.file_type().is_symlink() {
+            continue;
+        }
+        let hidden = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| name.starts_with('.'))
+            .unwrap_or(true);
+        if hidden {
+            continue;
+        }
+        let folder = path
+            .strip_prefix(root)
+            .ok()
+            .map(|relative| {
+                relative
+                    .components()
+                    .filter_map(|part| part.as_os_str().to_str())
+                    .collect::<Vec<_>>()
+                    .join("/")
+            })
+            .unwrap_or_default();
+        if !folder.is_empty() {
+            out.push(folder);
+        }
+        collect_library_folders(root, &path, out);
+    }
+}
+
+pub fn list_library(app: &AppHandle) -> Result<LibrarySnapshot, String> {
     let root = ensure_dirs(app)?.join("projects");
     let mut projects = Vec::new();
+    let mut folders = Vec::new();
     collect_library_projects(&root, &root, &mut projects);
+    collect_library_folders(&root, &root, &mut folders);
     projects.sort_by(|a, b| {
         a.folder
             .to_lowercase()
             .cmp(&b.folder.to_lowercase())
             .then_with(|| a.title.to_lowercase().cmp(&b.title.to_lowercase()))
     });
-    Ok(projects)
+    folders.sort_by_key(|folder| folder.to_lowercase());
+    Ok(LibrarySnapshot { projects, folders })
 }
 
 pub fn set_project_tags(path: &str, tags: Vec<String>) -> Result<(), String> {
@@ -213,6 +263,191 @@ pub fn set_project_tags(path: &str, tags: Vec<String>) -> Result<(), String> {
     let tags = clean_tags(&tags);
     object.insert("tags".into(), serde_json::json!(tags));
     write_json(file, &value)
+}
+
+pub fn create_library_folder(app: &AppHandle, folder: &str) -> Result<String, String> {
+    let data_dir = ensure_dirs(app)?;
+    let relative = safe_relative_folder(folder)?;
+    if relative.as_os_str().is_empty() {
+        return Err("Escribe un nombre de carpeta.".into());
+    }
+    let target = data_dir.join("projects").join(&relative);
+    if target.exists() {
+        return Err("Esa carpeta ya existe.".into());
+    }
+    fs::create_dir_all(&target).map_err(|e| format!("No se pudo crear la carpeta: {e}"))?;
+    Ok(relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/"))
+}
+
+pub fn rename_library_folder(
+    app: &AppHandle,
+    old_folder: &str,
+    new_folder: &str,
+) -> Result<(), String> {
+    let data_dir = ensure_dirs(app)?;
+    let projects_dir = data_dir.join("projects");
+    let old_relative = safe_relative_folder(old_folder)?;
+    let new_relative = safe_relative_folder(new_folder)?;
+    if old_relative.as_os_str().is_empty() || new_relative.as_os_str().is_empty() {
+        return Err("El nombre de la carpeta no es válido.".into());
+    }
+    let source = projects_dir.join(&old_relative);
+    let target = projects_dir.join(&new_relative);
+    if !source.is_dir() {
+        return Err("La carpeta ya no existe.".into());
+    }
+    if target.exists() {
+        return Err("Ya existe una carpeta con ese nombre.".into());
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("No se pudo crear la carpeta destino: {e}"))?;
+    }
+    fs::rename(&source, &target).map_err(|e| format!("No se pudo renombrar la carpeta: {e}"))?;
+
+    let old_prefix = source.to_string_lossy().to_string();
+    let new_prefix = target.to_string_lossy().to_string();
+    let mut recent = recent_projects(app);
+    let mut changed = false;
+    for item in &mut recent {
+        if let Some(rest) = item.path.strip_prefix(&old_prefix) {
+            if rest.starts_with('/') || rest.starts_with('\\') {
+                item.path = format!("{new_prefix}{rest}");
+                changed = true;
+            }
+        }
+    }
+    if changed {
+        let value = serde_json::to_value(&recent)
+            .map_err(|e| format!("No se pudo actualizar la lista de recientes: {e}"))?;
+        write_json(&data_dir.join("recent.json"), &value)?;
+    }
+    Ok(())
+}
+
+pub fn delete_library_folder(app: &AppHandle, folder: &str) -> Result<(), String> {
+    let data_dir = ensure_dirs(app)?;
+    let relative = safe_relative_folder(folder)?;
+    if relative.as_os_str().is_empty() {
+        return Err("No se puede eliminar la carpeta raíz.".into());
+    }
+    let target = data_dir.join("projects").join(&relative);
+    if !target.is_dir() {
+        return Err("La carpeta ya no existe.".into());
+    }
+    let mut entries =
+        fs::read_dir(&target).map_err(|e| format!("No se pudo revisar la carpeta: {e}"))?;
+    if entries.next().is_some() {
+        return Err("La carpeta no está vacía. Mueve o elimina sus proyectos primero.".into());
+    }
+    fs::remove_dir(&target).map_err(|e| format!("No se pudo eliminar la carpeta: {e}"))
+}
+
+pub fn set_project_title(app: &AppHandle, path: &str, title: &str) -> Result<(), String> {
+    let file = Path::new(path);
+    let title = title.trim();
+    if title.is_empty() {
+        return Err("El nombre del proyecto no puede quedar vacío.".into());
+    }
+    if title.len() > 160 {
+        return Err("El nombre del proyecto es demasiado largo.".into());
+    }
+    if file.extension().and_then(|ext| ext.to_str()) != Some("papernotes") {
+        return Err("El archivo no es un proyecto .papernotes.".into());
+    }
+    let mut value = read_json(file).ok_or_else(|| "No se pudo leer el proyecto.".to_string())?;
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| "El proyecto no tiene el formato esperado.".to_string())?;
+    object.insert("title".into(), serde_json::json!(title));
+    write_json(file, &value)?;
+    touch_recent(app, path, title)
+}
+
+pub fn duplicate_project(app: &AppHandle, path: &str) -> Result<String, String> {
+    let source = PathBuf::from(path);
+    if source.extension().and_then(|ext| ext.to_str()) != Some("papernotes") {
+        return Err("El archivo no es un proyecto .papernotes.".into());
+    }
+    let mut value = read_json(&source).ok_or_else(|| "No se pudo leer el proyecto.".to_string())?;
+    let title = value
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Sin título")
+        .to_string();
+    let new_title = format!("{title} (copia)");
+    let parent = source.parent().unwrap_or_else(|| Path::new("."));
+    let stem = source
+        .file_stem()
+        .and_then(|v| v.to_str())
+        .unwrap_or("proyecto");
+    let mut index = 1;
+    let target = loop {
+        let suffix = if index == 1 {
+            " (copia)".to_string()
+        } else {
+            format!(" (copia {index})")
+        };
+        let candidate = parent.join(format!("{stem}{suffix}.papernotes"));
+        if !candidate.exists() {
+            break candidate;
+        }
+        index += 1;
+    };
+    let target_string = target.to_string_lossy().to_string();
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| "El proyecto no tiene el formato esperado.".to_string())?;
+    object.insert("title".into(), serde_json::json!(new_title));
+    object.insert("path".into(), serde_json::json!(target_string));
+    object.insert(
+        "updatedAt".into(),
+        serde_json::json!(SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0)),
+    );
+    write_json(&target, &value)?;
+    touch_recent(app, &target_string, &new_title)?;
+    Ok(target_string)
+}
+
+pub fn trash_project(app: &AppHandle, path: &str) -> Result<String, String> {
+    let source = PathBuf::from(path);
+    if source.extension().and_then(|ext| ext.to_str()) != Some("papernotes") {
+        return Err("El archivo no es un proyecto .papernotes.".into());
+    }
+    if !source.is_file() {
+        return Err("El proyecto ya no existe.".into());
+    }
+    let data_dir = ensure_dirs(app)?;
+    let trash_dir = data_dir.join("trash");
+    fs::create_dir_all(&trash_dir).map_err(|e| format!("No se pudo crear la papelera: {e}"))?;
+    let name = source
+        .file_name()
+        .ok_or_else(|| "El proyecto no tiene un nombre válido.".to_string())?;
+    let target = trash_dir.join(format!(
+        "{}-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_secs())
+            .unwrap_or(0),
+        name.to_string_lossy()
+    ));
+    if let Err(rename_error) = fs::rename(&source, &target) {
+        fs::copy(&source, &target).map_err(|e| format!("No se pudo mover a la papelera: {e}"))?;
+        fs::remove_file(&source).map_err(|e| {
+            format!(
+                "Se copió a la papelera, pero no se pudo quitar el original: {e} ({rename_error})"
+            )
+        })?;
+    }
+    remove_recent(app, path)?;
+    Ok(target.to_string_lossy().to_string())
 }
 
 fn safe_relative_folder(folder: &str) -> Result<PathBuf, String> {
@@ -353,6 +588,17 @@ mod tests {
             .map(|duration| duration.as_nanos())
             .unwrap_or(0);
         std::env::temp_dir().join(format!("tinta-propia-{name}-{stamp}"))
+    }
+
+    #[test]
+    fn lists_empty_library_folders() {
+        let root = temp_dir("empty-folders");
+        std::fs::create_dir_all(root.join("Universidad").join("Cálculo")).unwrap();
+        let mut folders = Vec::new();
+        collect_library_folders(&root, &root, &mut folders);
+        assert!(folders.contains(&"Universidad".to_string()));
+        assert!(folders.contains(&"Universidad/Cálculo".to_string()));
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]

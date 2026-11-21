@@ -1,6 +1,6 @@
 [package]
 name = "tinta-propia"
-version = "0.6.2"
+version = "0.7.0"
 description = "Editor local de manuscritos Tinta Propia"
 authors = ["Tinta Propia contributors"]
 license = "MIT"

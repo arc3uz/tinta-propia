@@ -6,6 +6,22 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20
+
+### Added
+
+- Buscador de proyectos por título o etiqueta.
+- Filtros por etiqueta y orden por nombre o fecha.
+- Renombrar, duplicar y eliminar proyectos desde la biblioteca.
+- Crear, renombrar y eliminar carpetas, incluidas carpetas vacías.
+- Acción para abrir la carpeta contenedora de un proyecto.
+- Papelera interna para los proyectos eliminados.
+
+### Changed
+
+- La biblioteca incluye todas las carpetas dentro de `projects/`, aunque estén vacías.
+- El árbol se actualiza al buscar, filtrar u ordenar sin recargar la página.
+
 ## [0.6.2] - 2026-11-20
 
 ### Added
