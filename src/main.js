@@ -53,7 +53,8 @@ import {
   yieldFrame,
 } from "./core/utils.js";
 import { showModal, toast } from "./core/modal.js";
-import { showLibrary, showRecentProjects } from "./features/library.js";
+import { openHomeView, showRecentProjects } from "./features/library.js";
+import { openFormulaModal } from "./features/formulas.js";
 import {
   scheduleOutline,
   scheduleStats,
@@ -113,7 +114,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.5.1",
+    version: "0.6.0",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -1005,59 +1006,6 @@ function openMermaidModal() {
   return modal;
 }
 
-function openFormulaModal() {
-  const textarea = createEl("textarea", {
-    class: "mermaid-input",
-    spellcheck: "false",
-    placeholder: "E = mc^2\n\\frac{a}{b}\n\\sum_{i=1}^{n} p_i",
-  });
-  const type = createEl("select", {}, [
-    createEl("option", { value: "inline", text: "En línea ($...$)" }),
-    createEl("option", { value: "block", text: "Bloque centrado ($$...$$)" }),
-  ]);
-  const body = createEl("div", {}, [
-    textarea,
-    createEl("label", { class: "select-label", for: "formula-type", text: "Tipo de fórmula" }),
-    type,
-    createEl("p", {
-      class: "modal-hint",
-      text:
-        "El modo Mixto escribe las fórmulas en línea con tu letra y usa MathJax para los bloques. Puedes cambiarlo en Ajustes → Fórmulas.",
-    }),
-  ]);
-  type.id = "formula-type";
-  const modal = showModal({
-    title: "Insertar fórmula",
-    subtitle: "LaTeX simple o completo.",
-    body,
-    actions: [
-      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
-      {
-        label: "Insertar fórmula",
-        kind: "primary",
-        onClick: (close) => {
-          const code = textarea.value.trim();
-          if (!code) {
-            toast("Escribe una fórmula primero.", { type: "warn" });
-            return;
-          }
-          close();
-          const formula =
-            type.value === "block"
-              ? `$$\n${code}\n$$`
-              : `$${code}$`;
-          app.editor.insertText(`\n${formula}\n`, { block: true });
-          markDirty();
-          scheduleCompile(220);
-          scheduleAutosave(1200);
-        },
-      },
-    ],
-  });
-  setTimeout(() => textarea.focus(), 40);
-  return modal;
-}
-
 /* ───────────────────────── Proyectos ───────────────────────── */
 
 async function confirmDiscard() {
@@ -1262,7 +1210,7 @@ async function openProjectFlow() {
 }
 
 function openLibrary() {
-  return showLibrary({
+  return openHomeView({
     newProject,
     openProjectFlow,
     chooseProjectFile,
@@ -1460,7 +1408,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.5.1"],
+    ["Versión", app.boot?.version || "0.6.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -1478,6 +1426,18 @@ function showAbout() {
   });
 }
 
+function openFormulaPalette() {
+  openFormulaModal({
+    onInsert: (code, type) => {
+      const formula = type === "block" ? `$$\n${code}\n$$` : `$${code}$`;
+      app.editor.insertText(`\n${formula}\n`, { block: true });
+      markDirty();
+      scheduleCompile(220);
+      scheduleAutosave(1200);
+    },
+  });
+}
+
 function showShortcuts() {
   const shortcuts = [
     ["Recompilar manuscrito", "Ctrl + Enter"],
@@ -1490,6 +1450,7 @@ function showShortcuts() {
     ["Negrita / cursiva / código", "Ctrl + B / I / E"],
     ["Buscar en el editor", "Ctrl + F"],
     ["Exportar PDF", "Ctrl + Shift + E"],
+    ["Insertar fórmula rápida", "Ctrl + Shift + F"],
     ["Cerrar ventanas y menús", "Esc"],
   ];
   const grid = createEl("div", { class: "shortcut-grid" });
@@ -1642,7 +1603,7 @@ function handleFormat(action) {
       $("hiddenImageInput").click();
       return;
     case "formula":
-      openFormulaModal();
+      openFormulaPalette();
       return;
     case "mermaid":
       openMermaidModal();
@@ -1912,7 +1873,7 @@ function bindEditorEvents() {
         $("hiddenImageInput").click();
         break;
       case "insert-formula":
-        openFormulaModal();
+        openFormulaPalette();
         break;
       case "insert-mermaid":
         openMermaidModal();
@@ -2030,6 +1991,11 @@ function bindGlobalKeys() {
     if (mod && event.key === ",") {
       event.preventDefault();
       openSettings();
+      return;
+    }
+    if (mod && event.shiftKey && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      openFormulaPalette();
       return;
     }
     if (mod && event.key === "\\") {

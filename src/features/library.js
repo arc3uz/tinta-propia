@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { app } from "../core/state.js";
 import {
+  $,
   createEl,
   formatBytes,
   formatRelative,
@@ -392,74 +393,97 @@ function renderExternalRecents(container, projects, recent, closeLibrary, refres
   }
 }
 
-/**
- * Abre el menú lateral derecho con accesos rápidos, biblioteca y recientes.
- *
- * Las acciones de proyecto se inyectan desde `main.js` para evitar que este
- * módulo dependa del ciclo de compilación del editor.
- */
-export async function showLibrary(deps) {
-  let modal = null;
-  const body = createEl("div", { class: "welcome-box" });
-  const grid = createEl("div", { class: "welcome-grid" });
-  const run = async (action) => {
-    modal?.close();
-    await action();
-  };
-  const addCard = (title, detail, icon, action) => {
-    const card = createEl("button", { class: "welcome-card", type: "button" }, [
+let homeBound = false;
+let homeDeps = null;
+
+/** Cierra la página de inicio y vuelve al documento abierto. */
+export function closeHomeView() {
+  const view = $("homeView");
+  if (view) view.hidden = true;
+  const workspace = $("workspace");
+  if (workspace) workspace.hidden = false;
+}
+
+async function renderHome() {
+  const content = $("homeContent");
+  if (!content || !homeDeps) return;
+  content.innerHTML = "";
+
+  const actions = createEl("div", { class: "home-actions" });
+  const addAction = (title, detail, icon, action) => {
+    const card = createEl("button", { class: "home-action", type: "button" }, [
       createEl("span", { class: "welcome-icon" }, [svgIcon(icon)]),
       createEl("span", { class: "welcome-copy" }, [
         createEl("strong", { text: title }),
         createEl("small", { text: detail }),
       ]),
     ]);
-    card.addEventListener("click", () => run(action));
-    grid.append(card);
+    card.addEventListener("click", async () => {
+      closeHomeView();
+      await action();
+    });
+    actions.append(card);
   };
 
-  addCard("Nuevo proyecto", "Empieza con una hoja en blanco.", "plus", deps.newProject);
-  addCard("Abrir proyecto", "Retoma un archivo .papernotes.", "folder", async () => {
-    if (app.isTauri) await deps.chooseProjectFile();
-    else await deps.openProjectFlow();
+  addAction("Nuevo proyecto", "Empieza con una hoja en blanco.", "plus", homeDeps.newProject);
+  addAction("Abrir proyecto", "Retoma un archivo .papernotes.", "folder", async () => {
+    if (app.isTauri) await homeDeps.chooseProjectFile();
+    else await homeDeps.openProjectFlow();
   });
-  addCard("Importar Markdown", "Trae un documento .md existente.", "file", deps.openMarkdownFlow);
-  addCard("Cargar plantilla", "Usa el ejemplo de bienvenida.", "pen", deps.loadExampleTemplate);
-  body.append(grid);
+  addAction(
+    "Importar Markdown",
+    "Trae un documento .md existente.",
+    "file",
+    homeDeps.openMarkdownFlow
+  );
+  addAction(
+    "Cargar plantilla",
+    "Usa el ejemplo de bienvenida.",
+    "pen",
+    homeDeps.loadExampleTemplate
+  );
 
-  const libraryBox = createEl("div", { class: "library-box" });
-  const recentBox = createEl("div", { class: "welcome-recent" });
-  body.append(libraryBox, recentBox);
+  const columns = createEl("div", { class: "home-columns" });
+  const libraryPanel = createEl("section", { class: "home-panel" });
+  const recentPanel = createEl("aside", { class: "home-panel home-recent-panel" });
+  columns.append(libraryPanel, recentPanel);
+  content.append(actions, columns);
 
-  modal = showModal({
-    title: "Tinta Propia",
-    subtitle: "Elige cómo empezar. Este menú también está en Menú → Inicio.",
-    body,
-    wide: true,
-    actions: [
-      {
-        label: "Continuar con el documento actual",
-        kind: "primary",
-        onClick: (close) => close(),
-      },
-    ],
-  });
-
-  const closeLibrary = () => modal?.close();
   const refresh = async () => {
     const [projects, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
-    renderLibrary(libraryBox, projects, closeLibrary, refresh, deps);
+    renderLibrary(libraryPanel, projects, closeHomeView, refresh, homeDeps);
     renderExternalRecents(
-      recentBox,
+      recentPanel,
       projects,
       recent,
-      closeLibrary,
+      closeHomeView,
       refresh,
       collectLibraryFolders(projects),
-      deps
+      homeDeps
     );
+    columns.classList.toggle("with-recents", !recentPanel.hidden);
   };
   await refresh();
+}
+
+/**
+ * Abre la página de inicio dentro del espacio de trabajo.
+ *
+ * Es una vista real, no un modal: ocupa el área central, mantiene el documento
+ * cargado detrás y permite volver a él en cualquier momento.
+ */
+export async function openHomeView(deps) {
+  const view = $("homeView");
+  if (!view) return;
+  homeDeps = deps;
+  if (!homeBound) {
+    $("homeCloseBtn")?.addEventListener("click", closeHomeView);
+    homeBound = true;
+  }
+  const workspace = $("workspace");
+  if (workspace) workspace.hidden = true;
+  view.hidden = false;
+  await renderHome();
 }
 
 /** Lista de proyectos recientes para abrir un `.papernotes` del disco. */

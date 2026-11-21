@@ -22,7 +22,8 @@ src/
     modal.js           modales, avisos, confirmaciones y progreso
 
   features/
-    library.js         biblioteca de proyectos, etiquetas y carpetas
+    library.js         inicio, biblioteca, etiquetas y carpetas
+    formulas.js        paleta rápida de fórmulas y frecuencia de uso
     export.js          exportación a PDF, PNG y Markdown
     outline.js         esquema y estadísticas del documento
 ```
@@ -38,6 +39,8 @@ src/
   siempre el diálogo correcto.
 - **`features/library.js`** recibe las acciones de proyecto como dependencias.
   Así no importa `main.js` ni crea un ciclo de módulos.
+- **`features/formulas.js`** mantiene la paleta y el historial local de fórmulas;
+  la inserción final se delega a `main.js` mediante un callback.
 - **`engine.js`** no toca el DOM de la interfaz: recibe ajustes, imágenes y
   fórmulas, y devuelve canvas.
 

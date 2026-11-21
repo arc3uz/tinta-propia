@@ -1,7 +1,7 @@
 {
   "name": "tinta-propia",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.6.0",
   "type": "module",
   "description": "Tinta Propia: editor local de manuscritos con tu letra, interfaz tipo Overleaf.",
   "license": "MIT",

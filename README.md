@@ -23,6 +23,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Títulos rojos y cuerpo azul sobre papel blanco liso, sin cuadrícula ni margen rojo.
 - Diagramas Mermaid renderizados automáticamente en segundo plano.
 - Fórmulas LaTeX con MathJax y modo manuscrito simple.
+- Paleta de fórmulas frecuentes con inserción rápida y atajo `Ctrl+Shift+F`.
 - Mezcla configurable de hasta cuatro fuentes manuscritas.
 - Diseño de hoja en una columna o en **3 columnas horizontales**.
 - Tablas, callouts, listas, citas, código en cajas, saltos de página y de columna.
@@ -32,7 +33,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Exportación PDF nativa con Rust y exportación PNG por página.
 - Importación de Markdown y de fuentes TTF/OTF/WOFF.
 - Proyectos recientes y carpeta de datos accesible desde el menú.
-- Pantalla de inicio con accesos rápidos, biblioteca de proyectos en árbol y recientes.
+- **Inicio** como vista propia, con accesos rápidos, biblioteca de proyectos en árbol y recientes.
 - Tamaño de letra ajustable entre 12 y 38 px, con atajos de 12, 14, 16, 20 y 26 px.
 - Pantalla completa con el botón de la barra superior o `F11`.
 - Atajos de teclado y cierre con `Ctrl+Q` guardando la sesión.
@@ -253,6 +254,7 @@ Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Men�
 | Negrita / cursiva / código | `Ctrl+B` / `Ctrl+I` / `Ctrl+E` |
 | Buscar | `Ctrl+F` |
 | Exportar PDF | `Ctrl+Shift+E` |
+| Paleta de fórmulas | `Ctrl+Shift+F` |
 | Pantalla completa | `F11` |
 | Salir | `Ctrl+Q` |
 
@@ -313,6 +315,8 @@ $$
 H(X) = -\sum_{i=1}^{n} p_i \log_2 p_i
 $$
 ```
+
+La paleta **Insertar fórmula** incluye fracciones, raíces, sumatorias, integrales, probabilidad, letras griegas y matrices. Recuerda las fórmulas más usadas y las recientes. Se abre con el botón `ƒx`, con **Menú → Insertar fórmula** o con `Ctrl+Shift+F`.
 
 En **Ajustes → Fórmulas** hay tres modos:
 
@@ -387,7 +391,8 @@ src/
     modal.js    modales, avisos, confirmaciones y progreso
 
   features/
-    library.js  biblioteca de proyectos, etiquetas y carpetas
+    library.js  inicio, biblioteca de proyectos, etiquetas y carpetas
+    formulas.js paleta rápida de fórmulas y fórmulas frecuentes
     export.js   exportación PDF, PNG y Markdown
     outline.js  esquema y estadísticas del documento
 

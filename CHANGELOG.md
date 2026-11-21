@@ -6,6 +6,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
+### Added
+
+- **Inicio** como vista propia dentro de la aplicación, no como ventana flotante.
+- Biblioteca a página completa con acciones rápidas, árbol de carpetas y recientes.
+- Paleta de inserción rápida de fórmulas con categorías, más usadas y recientes.
+- Atajo `Ctrl + Shift + F` para abrir la paleta de fórmulas.
+
+### Changed
+
+- El botón `ƒx` y la opción **Insertar fórmula** abren la nueva paleta rápida.
+- Las fórmulas usadas se recuerdan en el equipo para ordenar la paleta.
+- Los ajustes y el documento permanecen cargados al entrar y salir de Inicio.
+
 ## [0.5.1] - 2026-11-20
 
 ### Changed
