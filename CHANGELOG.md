@@ -6,6 +6,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-20
+
+### Changed
+
+- El botón **Menú** pasó a la esquina superior izquierda, antes del título del proyecto.
+- El desplegable del menú se alinea a la izquierda, debajo del botón.
+- La pantalla de inicio vuelve a mostrarse como diálogo central; el panel lateral queda reservado para los ajustes.
+
 ## [0.5.0] - 2026-11-20
 
 ### Added

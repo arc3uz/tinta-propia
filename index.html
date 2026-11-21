@@ -46,6 +46,33 @@
     <div class="app-shell" id="appShell">
       <header class="topbar">
         <div class="tb-left">
+          <button class="tb-btn" id="menuBtn" title="Menú del proyecto">
+            <svg><use href="#i-menu"></use></svg>
+            <span>Menú</span>
+          </button>
+          <div class="menu-popover" id="menuPopover" hidden>
+            <button data-action="welcome"><span>Inicio</span></button>
+            <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
+            <button data-action="example"><span>Cargar plantilla de ejemplo</span></button>
+            <button data-action="open"><span>Abrir proyecto…</span><kbd>Ctrl O</kbd></button>
+            <button data-action="open-md"><span>Importar Markdown…</span></button>
+            <button data-action="save"><span>Guardar</span><kbd>Ctrl S</kbd></button>
+            <button data-action="save-as"><span>Guardar como…</span><kbd>Ctrl ⇧ S</kbd></button>
+            <button data-action="export-md"><span>Exportar Markdown…</span></button>
+            <hr />
+            <button data-action="insert-image"><span>Insertar imagen…</span></button>
+            <button data-action="insert-formula"><span>Insertar fórmula…</span></button>
+            <button data-action="insert-mermaid"><span>Insertar diagrama Mermaid…</span></button>
+            <button data-action="page-break"><span>Insertar salto de página</span></button>
+            <button data-action="column-break"><span>Insertar salto de columna</span></button>
+            <hr />
+            <button data-action="settings"><span>Ajustes del manuscrito</span><kbd>Ctrl ,</kbd></button>
+            <button data-action="data-dir"><span>Abrir carpeta de datos</span></button>
+            <button data-action="shortcuts"><span>Atajos de teclado</span><kbd>?</kbd></button>
+            <button data-action="about"><span>Acerca de Tinta Propia</span></button>
+            <hr />
+            <button data-action="quit"><span>Salir de Tinta Propia</span><kbd>Ctrl Q</kbd></button>
+          </div>
           <button class="tb-icon" id="sidebarToggle" title="Mostrar u ocultar panel (Ctrl+\\)" aria-label="Alternar panel">
             <svg><use href="#i-panel"></use></svg>
           </button>
@@ -75,33 +102,6 @@
             <svg><use href="#i-download"></use></svg>
             <span>PDF</span>
           </button>
-          <button class="tb-btn" id="menuBtn" title="Menú del proyecto">
-            <svg><use href="#i-menu"></use></svg>
-            <span>Menú</span>
-          </button>
-          <div class="menu-popover" id="menuPopover" hidden>
-            <button data-action="welcome"><span>Inicio</span></button>
-            <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
-            <button data-action="example"><span>Cargar plantilla de ejemplo</span></button>
-            <button data-action="open"><span>Abrir proyecto…</span><kbd>Ctrl O</kbd></button>
-            <button data-action="open-md"><span>Importar Markdown…</span></button>
-            <button data-action="save"><span>Guardar</span><kbd>Ctrl S</kbd></button>
-            <button data-action="save-as"><span>Guardar como…</span><kbd>Ctrl ⇧ S</kbd></button>
-            <button data-action="export-md"><span>Exportar Markdown…</span></button>
-            <hr />
-            <button data-action="insert-image"><span>Insertar imagen…</span></button>
-            <button data-action="insert-formula"><span>Insertar fórmula…</span></button>
-            <button data-action="insert-mermaid"><span>Insertar diagrama Mermaid…</span></button>
-            <button data-action="page-break"><span>Insertar salto de página</span></button>
-            <button data-action="column-break"><span>Insertar salto de columna</span></button>
-            <hr />
-            <button data-action="settings"><span>Ajustes del manuscrito</span><kbd>Ctrl ,</kbd></button>
-            <button data-action="data-dir"><span>Abrir carpeta de datos</span></button>
-            <button data-action="shortcuts"><span>Atajos de teclado</span><kbd>?</kbd></button>
-            <button data-action="about"><span>Acerca de Tinta Propia</span></button>
-            <hr />
-            <button data-action="quit"><span>Salir de Tinta Propia</span><kbd>Ctrl Q</kbd></button>
-          </div>
         </div>
         <div class="compile-progress" id="compileProgress"></div>
       </header>
@@ -233,7 +233,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span id="sbVersion">v0.5.0</span>
+          <span id="sbVersion">v0.5.1</span>
         </div>
       </footer>
     </div>

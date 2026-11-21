@@ -47,7 +47,6 @@ export function toast(message, options = {}) {
  * @param {Array<{label:string, kind?:string, onClick?:(close:Function)=>void}>} [options.actions]
  * @param {boolean} [options.narrow] Ancho compacto para formularios.
  * @param {boolean} [options.wide] Ancho amplio para contenido tabular.
- * @param {boolean} [options.side] Panel lateral derecho.
  * @param {boolean} [options.dismissible]
  * @param {Function} [options.onClose]
  */
@@ -58,12 +57,11 @@ export function showModal({
   actions = [],
   narrow = false,
   wide = false,
-  side = false,
   dismissible = true,
   onClose = null,
 }) {
   const root = $("modalRoot");
-  const backdrop = createEl("div", { class: `modal-backdrop${side ? " side" : ""}` });
+  const backdrop = createEl("div", { class: "modal-backdrop" });
   const head = createEl("div", { class: "modal-head" }, [
     createEl("div", {}, [
       createEl("h2", { text: title }),
@@ -89,7 +87,7 @@ export function showModal({
   const modal = createEl(
     "div",
     {
-      class: `modal${narrow ? " narrow" : ""}${wide ? " wide" : ""}${side ? " side" : ""}`,
+      class: `modal${narrow ? " narrow" : ""}${wide ? " wide" : ""}`,
       role: "dialog",
       "aria-modal": "true",
       "aria-label": title,

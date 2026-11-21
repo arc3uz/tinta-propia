@@ -435,7 +435,7 @@ export async function showLibrary(deps) {
     title: "Tinta Propia",
     subtitle: "Elige cómo empezar. Este menú también está en Menú → Inicio.",
     body,
-    side: true,
+    wide: true,
     actions: [
       {
         label: "Continuar con el documento actual",
