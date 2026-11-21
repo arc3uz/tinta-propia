@@ -81,6 +81,8 @@ jobs:
             - Fórmulas LaTeX en línea y en bloque, con MathJax incluido.
             - Mezcla de hasta cuatro fuentes manuscritas por sección o por línea.
             - Hoja horizontal dividida en 3 columnas, con PDF e impresión horizontal.
+            - Pantalla de inicio con biblioteca de proyectos en árbol, carpetas y etiquetas.
+            - Tamaños de letra desde 12 px y pantalla completa con F11.
 
             ### Instaladores
 
