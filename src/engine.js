@@ -72,6 +72,16 @@ export const DEFAULT_SETTINGS = {
   pageSize: "a4",
   markdown: true,
   numberPages: true,
+  mathEnabled: true,
+  mathMode: "auto",
+  mixFonts: false,
+  mixStrength: 30,
+  mixMode: "section",
+  mixFont1: "Papernotes",
+  mixFont2: "Caveat",
+  mixFont3: "Kalam",
+  layout: "normal",
+  columnGuides: true,
 };
 
 export const PRESETS = {
@@ -165,10 +175,21 @@ const state = {
   W: 1240,
   H: 1754,
   M: { left: 62, right: 54, top: 58, bottom: 56 },
+  columns: 1,
+  columnGap: 0,
+  columnWidth: 1124,
+  frame: { x: 62, width: 1124, top: 58, bottom: 1698, col: 0 },
   pages: [],
   images: new Map(),
   mermaid: new Map(),
   pendingMermaid: new Set(),
+  mathImages: new Map(),
+  mathTokens: new Map(),
+  currentFont: "MiLetra IIC2531",
+  sectionFont: "MiLetra IIC2531",
+  sectionIndex: 0,
+  lineIndex: 0,
+  mathTokenSeq: 0,
   warnings: new Set(),
   rngState: 1847,
   mmW: 210,
@@ -181,6 +202,31 @@ const num = (value, fallback) => {
 };
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function hashText(value) {
+  let hash = 2166136261;
+  const text = String(value);
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function pickMixedFont(seed) {
+  const base = state.settings.font || "Papernotes";
+  if (!state.settings.mixFonts) return base;
+  const strength = clamp(num(state.settings.mixStrength, 30) / 100, 0, 1);
+  const roll = hashText(`${state.settings.seed}|${seed}|${base}`) / 4294967296;
+  if (roll >= strength) return base;
+  const pool = [
+    state.settings.mixFont1,
+    state.settings.mixFont2,
+    state.settings.mixFont3,
+  ].filter((family) => family && family !== base);
+  if (!pool.length) return base;
+  return pool[hashText(`${state.settings.seed}|${seed}|pick`) % pool.length];
+}
 
 function rand() {
   state.rngState =
@@ -232,19 +278,58 @@ function lineStep() {
 
 function applyMetrics() {
   const cfg = PAGE_SIZES[state.settings.pageSize] || PAGE_SIZES.a4;
-  state.page = cfg;
-  state.W = cfg.w;
-  state.H = cfg.h;
-  state.mmW = cfg.mmW;
-  state.mmH = cfg.mmH;
+  const landscape = state.settings.layout === "columns";
+  const width = landscape ? cfg.h : cfg.w;
+  const height = landscape ? cfg.w : cfg.h;
+  state.page = { ...cfg, w: width, h: height };
+  state.W = width;
+  state.H = height;
+  state.mmW = landscape ? cfg.mmH : cfg.mmW;
+  state.mmH = landscape ? cfg.mmW : cfg.mmH;
   const preset = MARGIN_PRESETS[state.settings.margins] || MARGIN_PRESETS.pequenos;
-  const scale = state.W / 1240;
+  const scale = Math.min(width, height) / 1240;
   state.M = {
     left: Math.round(preset.left * scale),
     right: Math.round(preset.right * scale),
     top: Math.round(preset.top * scale),
     bottom: Math.round(preset.bottom * scale),
   };
+  state.columns = landscape ? 3 : 1;
+  state.columnGap = landscape ? Math.round(20 * scale) : 0;
+  const usable = state.W - state.M.left - state.M.right;
+  state.columnWidth = landscape
+    ? (usable - state.columnGap * 2) / 3
+    : usable;
+  state.frame = {
+    x: state.M.left,
+    width: state.columnWidth,
+    top: state.M.top,
+    bottom: state.H - state.M.bottom,
+    col: 0,
+  };
+}
+
+function setColumnFrame(page, col) {
+  const x =
+    state.M.left + col * (state.columnWidth + state.columnGap);
+  state.frame = {
+    x,
+    width: state.columnWidth,
+    top: state.M.top,
+    bottom: state.H - state.M.bottom,
+    col,
+  };
+  page.col = col;
+  page.y = state.M.top;
+}
+
+function newColumn(page) {
+  if (state.columns <= 1) return newPage();
+  if (page.col + 1 < state.columns) {
+    setColumnFrame(page, page.col + 1);
+    return page;
+  }
+  return newPage();
 }
 
 function drawPaper(ctx) {
@@ -298,6 +383,21 @@ function drawPaper(ctx) {
     ctx.fillStyle = `rgba(120,105,80,${rand() * 0.018 * grain})`;
     ctx.fillRect(rand() * W, rand() * H, 1, 1);
   }
+
+  if (state.columns > 1 && state.settings.columnGuides !== false) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(80,100,130,.16)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 7]);
+    for (let col = 1; col < state.columns; col++) {
+      const x = M.left + col * (state.columnWidth + state.columnGap) - state.columnGap / 2;
+      ctx.beginPath();
+      ctx.moveTo(x, M.top - 12);
+      ctx.lineTo(x, H - M.bottom + 12);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 }
 
 function newPage() {
@@ -306,13 +406,14 @@ function newPage() {
   canvas.height = state.H;
   const ctx = canvas.getContext("2d");
   drawPaper(ctx);
-  const page = { canvas, ctx, y: state.M.top };
+  const page = { canvas, ctx, y: state.M.top, col: 0 };
   state.pages.push(page);
+  setColumnFrame(page, 0);
   return page;
 }
 
 function font(size, bold) {
-  const family = state.settings.font || "Papernotes";
+  const family = state.currentFont || state.settings.font || "Papernotes";
   const weight = bold && family !== "MiLetra IIC2531" ? "700 " : "400 ";
   return `${weight}${size}px "${family}", cursive`;
 }
@@ -363,13 +464,66 @@ function cleanCode(source) {
     .replace(/…/g, "...");
 }
 
+const MATH_TOKEN_RE = /\u0001\d+\u0001/;
+
+function parseMathWord(word) {
+  const match = word.match(/^(.*?)\u0001(\d+)\u0001(.*)$/);
+  if (!match) return null;
+  const entry = state.mathTokens.get(Number(match[2]));
+  if (!entry) return null;
+  return { prefix: match[1] || "", suffix: match[3] || "", entry };
+}
+
+function mathWordWidth(ctx, word, size) {
+  const parsed = parseMathWord(word);
+  if (!parsed) return ctx.measureText(word).width;
+  return (
+    ctx.measureText(parsed.prefix).width +
+    parsed.entry.widthEm * size +
+    ctx.measureText(parsed.suffix).width
+  );
+}
+
+function lineMathExtents(text, size) {
+  let above = 0;
+  let below = 0;
+  for (const word of text.split(/ +/)) {
+    const math = parseMathWord(word);
+    if (!math) continue;
+    above = Math.max(above, math.entry.baselineEm * size);
+    below = Math.max(below, (math.entry.heightEm - math.entry.baselineEm) * size);
+  }
+  return { above, below };
+}
+
+function injectInlineMath(text) {
+  if (!state.settings.mathEnabled || !state.mathImages.size) return text;
+  const addToken = (code) => {
+    const entry = state.mathImages.get(`I:${code.trim()}`);
+    if (!entry) return null;
+    const id = ++state.mathTokenSeq;
+    state.mathTokens.set(id, entry);
+    return `\u0001${id}\u0001`;
+  };
+
+  let result = text.replace(/(^|[^\\])\$([^$\n]+)\$/g, (match, prefix, code) => {
+    const token = addToken(code);
+    return token ? `${prefix}${token}` : match;
+  });
+  result = result.replace(/(^|[^\\])\\(([^)\n]+)\\)/g, (match, prefix, code) => {
+    const token = addToken(code);
+    return token ? `${prefix}${token}` : match;
+  });
+  return result;
+}
+
 function measureLine(ctx, text, size, bold) {
-  const family = state.settings.font || "Papernotes";
+  const family = state.currentFont || state.settings.font || "Papernotes";
   ctx.font = font(size, bold);
   const words = text.split(/ +/).filter(Boolean);
   let width = 0;
   for (let i = 0; i < words.length; i++) {
-    width += ctx.measureText(words[i]).width;
+    width += mathWordWidth(ctx, words[i], size);
     if (i < words.length - 1) {
       const gap = Math.max(ctx.measureText(" ").width, size * 0.38) * wordSpacing();
       width += family === "MiLetra IIC2531" ? gap : gap * tracking() * 1.45;
@@ -390,6 +544,22 @@ function wrap(ctx, text, maxWidth, size, bold) {
   };
   for (const word of words) {
     ctx.font = font(size, bold);
+    const math = parseMathWord(word);
+    if (math) {
+      const mathWidth = mathWordWidth(ctx, word, size);
+      if (mathWidth > maxWidth && line) {
+        lines.push(line);
+        line = "";
+      }
+      const testMath = line ? `${line} ${word}` : word;
+      if (!line || measureLine(ctx, testMath, size, bold) <= maxWidth) {
+        line = testMath;
+      } else {
+        lines.push(line);
+        line = word;
+      }
+      continue;
+    }
     if (measureLine(ctx, word, size, bold) > maxWidth) {
       pushLine();
       let chunk = "";
@@ -432,7 +602,7 @@ function drawWordLine(ctx, text, x, y, size, bold, lineColor) {
   for (let wi = 0; wi < words.length; wi++) {
     const word = words[wi];
     if (!word) continue;
-    const w = ctx.measureText(word).width;
+    const math = parseMathWord(word);
     const wordRot =
       (gauss() * r * 0.55 * Math.PI) / 180 +
       ((num(state.settings.slant, 0) || 0) * Math.PI) / 180;
@@ -440,6 +610,29 @@ function drawWordLine(ctx, text, x, y, size, bold, lineColor) {
     const wordScaleX = 1 + gauss() * r * 0.008;
     const wordScaleY = 1 + gauss() * r * 0.007;
     const alpha = clamp(inkAlpha * (0.94 + rand() * 0.06), 0.45, 1);
+
+    if (math) {
+      const entry = math.entry;
+      const prefixW = ctx.measureText(math.prefix).width;
+      const suffixW = ctx.measureText(math.suffix).width;
+      const mw = entry.widthEm * size;
+      const mh = entry.heightEm * size;
+      const mbase = entry.baselineEm * size;
+      ctx.save();
+      ctx.translate(cx, y + lineDrift + wordDy + (cx - x) * lineTilt);
+      ctx.rotate(wordRot);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = lineColor;
+      ctx.font = font(size, bold);
+      if (math.prefix) ctx.fillText(math.prefix, 0, 0);
+      ctx.drawImage(entry.img, prefixW, -mbase, mw, mh);
+      if (math.suffix) ctx.fillText(math.suffix, prefixW + mw, 0);
+      ctx.restore();
+      cx += prefixW + mw + suffixW + Math.max(ctx.measureText(" ").width, size * 0.38) * wordSpacing();
+      continue;
+    }
+
+    const w = ctx.measureText(word).width;
     ctx.save();
     ctx.translate(cx, y + lineDrift + wordDy + (cx - x) * lineTilt);
     ctx.rotate(wordRot);
@@ -456,9 +649,9 @@ function drawWordLine(ctx, text, x, y, size, bold, lineColor) {
 }
 
 function drawLine(ctx, text, x, y, size, bold) {
-  const family = state.settings.font || "Papernotes";
+  const family = state.currentFont || state.settings.font || "Papernotes";
   const lineColor = bold ? headingColor() : inkColor();
-  if (family === "MiLetra IIC2531") {
+  if (family === "MiLetra IIC2531" || MATH_TOKEN_RE.test(text)) {
     drawWordLine(ctx, text, x, y, size, bold, lineColor);
     return;
   }
@@ -535,9 +728,30 @@ function drawLine(ctx, text, x, y, size, bold) {
   }
 }
 
+function drawMathBlock(page, entry, baseSize) {
+  const maxWidth = state.frame.width;
+  const maxHeight = state.frame.bottom - state.frame.top - baseSize;
+  let size = baseSize * 1.08;
+  let width = entry.widthEm * size;
+  let height = entry.heightEm * size;
+  const scale = Math.min(1, maxWidth / Math.max(1, width), maxHeight / Math.max(1, height));
+  width *= scale;
+  height *= scale;
+
+  if (page.y + height + baseSize * 0.6 > state.frame.bottom && page.y > state.frame.top + 1) {
+    page = newColumn(page);
+  }
+  const x = state.frame.x + Math.max(0, (maxWidth - width) / 2);
+  page.ctx.save();
+  page.ctx.drawImage(entry.img, x, page.y, width, height);
+  page.ctx.restore();
+  page.y += height + baseSize * 0.75;
+  return page;
+}
+
 function newPageIfNeeded(page, needed) {
-  if (page.y + needed > state.H - state.M.bottom) {
-    return newPage();
+  if (page.y + needed > state.frame.bottom) {
+    return newColumn(page);
   }
   return page;
 }
@@ -552,8 +766,8 @@ function loadImage(src) {
 }
 
 function drawImageEntry(page, entry, caption) {
-  const maxWidth = state.W - state.M.left - state.M.right;
-  const maxHeight = state.H - state.M.top - state.M.bottom - 20;
+  const maxWidth = state.frame.width;
+  const maxHeight = state.frame.bottom - state.frame.top - 20;
   if (!entry || !entry.img) {
     state.warnings.add("Hay una imagen que no se pudo cargar.");
     drawMissingBox(page, "Imagen no encontrada", "Inserta de nuevo la imagen o revisa el token.");
@@ -568,14 +782,14 @@ function drawImageEntry(page, entry, caption) {
     height = maxHeight;
     width = (height * img.width) / img.height;
   }
-  if (page.y + height + 20 > state.H - state.M.bottom) {
-    page = newPage();
+  if (page.y + height + 20 > state.frame.bottom) {
+    page = newColumn(page);
   }
-  const x = state.M.left + Math.max(0, (maxWidth - width) / 2);
+  const x = state.frame.x + Math.max(0, (maxWidth - width) / 2);
   page.ctx.drawImage(img, x, page.y, width, height);
   page.y += height + 16;
   if (caption) {
-    drawLine(page.ctx, cleanText(caption), state.M.left, page.y + 22, 20, false);
+    drawLine(page.ctx, cleanText(caption), state.frame.x, page.y + 22, 20, false);
     page.y += 34;
   }
   page.y += 12;
@@ -583,10 +797,10 @@ function drawImageEntry(page, entry, caption) {
 }
 
 function drawPlaceholderBox(page, title, detail, tone = "error") {
-  const maxWidth = state.W - state.M.left - state.M.right;
+  const maxWidth = state.frame.width;
   const height = 108;
-  if (page.y + height > state.H - state.M.bottom) page = newPage();
-  const x = state.M.left;
+  if (page.y + height > state.frame.bottom) page = newColumn(page);
+  const x = state.frame.x;
   const y = page.y;
   const accent =
     tone === "pending" ? "rgba(29,111,220,.5)" : "rgba(165,42,42,.45)";
@@ -686,13 +900,13 @@ function drawCallout(page, type, customTitle, content, baseSize, lead, maxWidth)
     } else if (/^\d+\.\s+/.test(text)) {
       indent = baseSize * 0.35;
     }
-    text = cleanText(text);
+    text = cleanText(injectInlineMath(text));
     const lines = wrap(page.ctx, text, (textW - indent) * 0.94, fs, false);
     for (const line of lines) items.push({ text: line, indent });
   }
   if (!items.length) items.push({ text: "", indent: 0 });
   const itemH = (it) => (it.blank ? lh * 0.45 : lh);
-  const maxContentH = state.H - state.M.top - state.M.bottom - padY * 2 - labelH - baseSize * 0.5;
+  const maxContentH = state.frame.bottom - state.frame.top - padY * 2 - labelH - baseSize * 0.5;
   const chunks = [];
   let current = [];
   let curH = 0;
@@ -712,8 +926,8 @@ function drawCallout(page, type, customTitle, content, baseSize, lead, maxWidth)
   chunks.forEach((chunk, ci) => {
     const chunkH = chunk.reduce((a, it) => a + itemH(it), 0);
     const boxH = padY * 2 + labelH + chunkH;
-    if (page.y + boxH > state.H - state.M.bottom && page.y > state.M.top + 1) page = newPage();
-    const x = state.M.left;
+    if (page.y + boxH > state.frame.bottom && page.y > state.frame.top + 1) page = newColumn(page);
+    const x = state.frame.x;
     const y = page.y;
     page.ctx.save();
     page.ctx.fillStyle = style.fill;
@@ -843,14 +1057,14 @@ function drawTable(page, header, rows, baseSize, lead, maxWidth) {
   const head = wrapRow(header, true);
   const body = rows.map((r) => wrapRow(r, false));
   const headH = head.h;
-  const maxRowH = state.H - state.M.top - state.M.bottom - headH - baseSize * 2;
+  const maxRowH = state.frame.bottom - state.frame.top - headH - baseSize * 2;
 
   const drawChunk = (chunk) => {
     const totalH = headH + chunk.reduce((a, r) => a + r.h, 0);
-    if (page.y + totalH > state.H - state.M.bottom && page.y > state.M.top + 1) {
-      page = newPage();
+    if (page.y + totalH > state.frame.bottom && page.y > state.frame.top + 1) {
+      page = newColumn(page);
     }
-    const x = state.M.left;
+    const x = state.frame.x;
     const y = page.y;
     let cy = y;
 
@@ -992,7 +1206,7 @@ function drawCodeBlock(page, lang, lines, baseSize, lead, maxWidth) {
     }
   }
   if (!out.length) out.push("");
-  const maxContentH = state.H - state.M.top - state.M.bottom - padY * 2 - labelH - baseSize * 0.5;
+  const maxContentH = state.frame.bottom - state.frame.top - padY * 2 - labelH - baseSize * 0.5;
   const chunks = [];
   let cur = [];
   let curH = 0;
@@ -1010,8 +1224,8 @@ function drawCodeBlock(page, lang, lines, baseSize, lead, maxWidth) {
   const label = codeLabel(lang);
   chunks.forEach((chunk, ci) => {
     const boxH = padY * 2 + labelH + chunk.length * lh;
-    if (page.y + boxH > state.H - state.M.bottom && page.y > state.M.top + 1) page = newPage();
-    const x = state.M.left;
+    if (page.y + boxH > state.frame.bottom && page.y > state.frame.top + 1) page = newColumn(page);
+    const x = state.frame.x;
     const y = page.y;
     page.ctx.save();
     page.ctx.fillStyle = "rgba(18,53,91,.035)";
@@ -1044,13 +1258,20 @@ function drawCodeBlock(page, lang, lines, baseSize, lead, maxWidth) {
 
 function layoutPass(markdown, { prepass, toc }) {
   state.pages = [];
+  state.mathTokens = new Map();
+  state.mathTokenSeq = 0;
+  state.currentFont = state.settings.font || "Papernotes";
+  state.sectionFont = state.currentFont;
+  state.sectionIndex = 0;
+  state.lineIndex = 0;
+  state.sectionFont = pickMixedFont(0);
   seedRng(num(state.settings.seed, 1847));
   applyMetrics();
 
   const baseSize = num(state.settings.size, 26);
   const lead = num(state.settings.leading, 1.32);
   const useMd = state.settings.markdown !== false;
-  const maxW = state.W - state.M.left - state.M.right;
+  const maxW = state.columnWidth;
   const drawNumbers = state.settings.numberPages !== false && !prepass;
   const tocPages = toc || null;
 
@@ -1072,6 +1293,11 @@ function layoutPass(markdown, { prepass, toc }) {
       page.y += baseSize * lead * (inCode ? 0.35 : 0.55);
       continue;
     }
+
+    state.currentFont =
+      state.settings.mixFonts && state.settings.mixMode === "line"
+        ? pickMixedFont(++state.lineIndex)
+        : state.sectionFont;
 
     if (useMd && line.trim().startsWith("```")) {
       const info = line.trim().slice(3).trim();
@@ -1107,6 +1333,45 @@ function layoutPass(markdown, { prepass, toc }) {
       continue;
     }
 
+    if (useMd && state.settings.mathEnabled !== false && (line.trim().startsWith("$$") || line.trim().startsWith("\\["))) {
+      const first = line.trim();
+      const open = first.startsWith("\\[") ? "\\[" : "$$";
+      const close = open === "\\[" ? "\\]" : "$$";
+      let code = "";
+      if (first.length > open.length + close.length && first.endsWith(close)) {
+        code = first.slice(open.length, -close.length);
+      } else {
+        const parts = [first.slice(open.length)];
+        let lj = li + 1;
+        while (lj < srcLines.length && !srcLines[lj].includes(close)) {
+          parts.push(srcLines[lj]);
+          lj++;
+        }
+        if (lj < srcLines.length) {
+          const last = srcLines[lj];
+          parts.push(last.slice(0, last.indexOf(close)));
+          li = lj;
+        } else {
+          li = srcLines.length;
+        }
+        code = parts.join("\n");
+      }
+      const formula = code.trim();
+      const entry = state.mathImages.get(`D:${formula}`);
+      if (entry) {
+        page = drawMathBlock(page, entry, baseSize);
+      } else {
+        state.warnings.add("Una fórmula no se pudo renderizar. Revisa la sintaxis LaTeX.");
+        page = drawMissingBox(page, "Fórmula no disponible", "Revisa la sintaxis e indica el modo de fórmulas.");
+      }
+      continue;
+    }
+
+    if (/^\[\[COLUMNBREAK\]\]$/i.test(line.trim())) {
+      page = newColumn(page);
+      continue;
+    }
+
     if (/^\[\[PAGEBREAK\]\]$/i.test(line.trim())) {
       page = newPage();
       continue;
@@ -1128,6 +1393,7 @@ function layoutPass(markdown, { prepass, toc }) {
       if (tableLines.length >= 2 && isTableSeparator(tableLines[1])) {
         const header = parseTableCells(tableLines[0]);
         const rows = tableLines.slice(2).map(parseTableCells);
+        state.currentFont = state.settings.font || "Papernotes";
         page = drawTable(page, header, rows, baseSize, lead, maxW);
         li = lj - 1;
         continue;
@@ -1170,6 +1436,25 @@ function layoutPass(markdown, { prepass, toc }) {
         const level = m[1].length;
         text = m[2];
         headingKey = m[2].trim();
+        state.currentFont = state.settings.font || "Papernotes";
+        let nextLine = "";
+        for (let probe = li + 1; probe < srcLines.length; probe++) {
+          if (srcLines[probe].trim()) {
+            nextLine = srcLines[probe].trim();
+            break;
+          }
+        }
+        let reserve = baseSize * 3;
+        if (nextLine.startsWith("|")) reserve = baseSize * 10;
+        else if (nextLine.startsWith("```")) reserve = baseSize * 10;
+        else if (/^>\s*\[!/.test(nextLine)) reserve = baseSize * 8;
+        if (page.y + reserve > state.frame.bottom && page.y > state.frame.top + 1) {
+          page = newColumn(page);
+        }
+        if (level <= 2) {
+          state.sectionIndex += 1;
+          state.sectionFont = pickMixedFont(1000 + state.sectionIndex);
+        }
         const custom = state.settings.font === "MiLetra IIC2531";
         if (custom) {
           size =
@@ -1201,8 +1486,8 @@ function layoutPass(markdown, { prepass, toc }) {
         page.ctx.strokeStyle = "rgba(80,100,130,.35)";
         page.ctx.lineWidth = 1;
         page.ctx.beginPath();
-        page.ctx.moveTo(state.M.left, page.y);
-        page.ctx.lineTo(state.W - state.M.right, page.y);
+        page.ctx.moveTo(state.frame.x, page.y);
+        page.ctx.lineTo(state.frame.x + state.frame.width, page.y);
         page.ctx.stroke();
         page.y += baseSize * lead;
         continue;
@@ -1235,7 +1520,7 @@ function layoutPass(markdown, { prepass, toc }) {
         page = newPageIfNeeded(page, lh);
         page.ctx.font = monoFont(fs);
         page.ctx.fillStyle = inkColor();
-        page.ctx.fillText(rest.slice(0, cut), state.M.left + indent, page.y + fs * 0.82);
+        page.ctx.fillText(rest.slice(0, cut), state.frame.x + indent, page.y + fs * 0.82);
         page.y += lh;
         rest = rest.slice(cut);
       }
@@ -1243,20 +1528,24 @@ function layoutPass(markdown, { prepass, toc }) {
       continue;
     }
 
-    text = cleanText(text);
+    text = cleanText(injectInlineMath(text));
     const fs = Math.round(size);
     const lh = fs * lead;
     const lines = wrap(page.ctx, text, (maxW - indent) * 0.94, fs, bold);
     let lastBaseline = 0;
     for (const ln of lines) {
-      page = newPageIfNeeded(page, lh);
+      const extents = lineMathExtents(ln, fs);
+      const extraAbove = Math.max(0, extents.above - fs * 0.82);
+      const extraBelow = Math.max(0, extents.below - fs * 0.18);
+      const lineH = lh + extraAbove + extraBelow;
+      page = newPageIfNeeded(page, lineH);
       if (headingKey && prepass && tocPages && tocPages[headingKey] == null) {
         tocPages[headingKey] = state.pages.length;
       }
-      const baseline = page.y + fs * 0.82;
-      drawLine(page.ctx, ln, state.M.left + indent, baseline, fs, bold);
+      const baseline = page.y + fs * 0.82 + extraAbove;
+      drawLine(page.ctx, ln, state.frame.x + indent, baseline, fs, bold);
       lastBaseline = baseline;
-      page.y += lh;
+      page.y += lineH;
     }
     if (tocTarget && tocPages && tocPages[tocTarget] != null) {
       page.ctx.save();
@@ -1264,13 +1553,14 @@ function layoutPass(markdown, { prepass, toc }) {
       page.ctx.fillStyle = "rgba(40,65,95,.75)";
       page.ctx.textAlign = "right";
       page.ctx.textBaseline = "alphabetic";
-      page.ctx.fillText(String(tocPages[tocTarget]), state.W - state.M.right - 12, lastBaseline);
+      page.ctx.fillText(String(tocPages[tocTarget]), state.frame.x + state.frame.width - 12, lastBaseline);
       page.ctx.restore();
     }
     page.y += bold ? fs * 0.18 : fs * 0.05;
   }
 
   if (drawNumbers) {
+    state.currentFont = state.settings.font || "Papernotes";
     state.pages.forEach((p, i) => {
       const label = `${i + 1} / ${state.pages.length}`;
       p.ctx.save();
@@ -1309,11 +1599,15 @@ export function renderDocument({
   images = new Map(),
   mermaidImages = new Map(),
   pendingMermaid = new Set(),
+  mathImages = new Map(),
 }) {
   state.settings = { ...DEFAULT_SETTINGS, ...(settings || {}) };
   state.images = images;
   state.mermaid = mermaidImages;
   state.pendingMermaid = pendingMermaid;
+  state.mathImages = mathImages;
+  state.mathTokens = new Map();
+  state.mathTokenSeq = 0;
   state.warnings = new Set();
   applyMetrics();
 
@@ -1345,7 +1639,16 @@ export function renderDocument({
 
 export function pageDimensions(settings) {
   const cfg = PAGE_SIZES[settings?.pageSize] || PAGE_SIZES.a4;
-  return cfg;
+  const landscape = settings?.layout === "columns";
+  return {
+    ...cfg,
+    w: landscape ? cfg.h : cfg.w,
+    h: landscape ? cfg.w : cfg.h,
+    mmW: landscape ? cfg.mmH : cfg.mmW,
+    mmH: landscape ? cfg.mmW : cfg.mmH,
+    landscape,
+    columns: landscape ? 3 : 1,
+  };
 }
 
 export { loadImage };

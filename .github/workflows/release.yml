@@ -76,6 +76,12 @@ jobs:
             Aplicación de escritorio para escribir manuscritos con tu propia letra.
             Todo funciona de forma local, sin cuentas ni conexión a internet.
 
+            ### Novedades de esta versión
+
+            - Fórmulas LaTeX en línea y en bloque, con MathJax incluido.
+            - Mezcla de hasta cuatro fuentes manuscritas por sección o por línea.
+            - Hoja horizontal dividida en 3 columnas, con PDF e impresión horizontal.
+
             ### Instaladores
 
             - **Linux:** AppImage, `.deb` y `.rpm`.

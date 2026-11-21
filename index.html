@@ -84,8 +84,10 @@
             <button data-action="export-md"><span>Exportar Markdown…</span></button>
             <hr />
             <button data-action="insert-image"><span>Insertar imagen…</span></button>
+            <button data-action="insert-formula"><span>Insertar fórmula…</span></button>
             <button data-action="insert-mermaid"><span>Insertar diagrama Mermaid…</span></button>
             <button data-action="page-break"><span>Insertar salto de página</span></button>
+            <button data-action="column-break"><span>Insertar salto de columna</span></button>
             <hr />
             <button data-action="settings"><span>Ajustes del manuscrito</span><kbd>Ctrl ,</kbd></button>
             <button data-action="data-dir"><span>Abrir carpeta de datos</span></button>
@@ -161,7 +163,9 @@
             <span class="fmt-sep"></span>
             <button class="fmt-btn" data-format="image" title="Insertar imagen"><svg><use href="#i-image"></use></svg></button>
             <button class="fmt-btn" data-format="mermaid" title="Insertar diagrama Mermaid"><svg><use href="#i-diagram"></use></svg></button>
+            <button class="fmt-btn" data-format="formula" title="Insertar fórmula">ƒx</button>
             <button class="fmt-btn" data-format="pagebreak" title="Salto de página"><svg><use href="#i-break"></use></svg></button>
+            <button class="fmt-btn" data-format="columnbreak" title="Salto de columna">⇥</button>
           </div>
           <div class="editor-host" id="editorHost"></div>
           <div class="pane-status">
@@ -224,7 +228,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span>v0.1.1</span>
+          <span id="sbVersion">v0.2.0</span>
         </div>
       </footer>
     </div>
@@ -268,6 +272,16 @@
             <option value="a5">A5 · 148 × 210 mm</option>
             <option value="oficio">Oficio · 216 × 330 mm</option>
           </select>
+          <label class="select-label" for="layout">Diseño de hoja</label>
+          <select id="layout">
+            <option value="normal" selected>Una columna (vertical)</option>
+            <option value="columns">3 columnas (horizontal)</option>
+          </select>
+          <label class="checkline">
+            <input id="columnGuides" type="checkbox" checked />
+            <span><b>Guías de columna</b><small>Líneas punteadas entre las tres columnas.</small></span>
+          </label>
+          <p class="setting-hint small">Con 3 columnas la hoja se usa horizontal y el texto fluye de la columna 1 a la 3. No es un folleto plegado: es la hoja completa dividida en columnas.</p>
           <div class="two-col">
             <div>
               <label class="select-label" for="margins">Márgenes</label>
@@ -309,6 +323,30 @@
           <label class="select-label" for="font">Fuente manuscrita</label>
           <select id="font"></select>
           <button class="btn ghost small full" id="importFontBtn">Importar una fuente TTF / OTF</button>
+
+          <label class="checkline spaced">
+            <input id="mixFonts" type="checkbox" />
+            <span><b>Mezclar manos</b><small>Alterna entre tu letra y 3 fuentes secundarias.</small></span>
+          </label>
+          <label class="select-label" for="mixMode">Estilo de mezcla</label>
+          <select id="mixMode">
+            <option value="section" selected>Por sección (recomendado)</option>
+            <option value="line">Por línea</option>
+          </select>
+          <div class="control-row spaced">
+            <label for="mixStrength">Intensidad</label>
+            <output id="mixStrengthVal">30 %</output>
+          </div>
+          <input id="mixStrength" type="range" min="0" max="100" step="1" value="30" />
+          <div class="mix-fonts">
+            <label for="mixFont1">Mano 2</label>
+            <select id="mixFont1"></select>
+            <label for="mixFont2">Mano 3</label>
+            <select id="mixFont2"></select>
+            <label for="mixFont3">Mano 4</label>
+            <select id="mixFont3"></select>
+          </div>
+
           <div class="two-col spaced">
             <div>
               <label class="select-label" for="ink">Tinta del cuerpo</label>
@@ -392,6 +430,21 @@
           </label>
           <p class="setting-hint small">El tamaño y los márgenes se calculan sobre la hoja elegida.</p>
         </section>
+
+        <section class="setting-group">
+          <h3><span class="setting-dot"></span>Fórmulas</h3>
+          <label class="checkline">
+            <input id="mathEnabled" type="checkbox" checked />
+            <span><b>Renderizar fórmulas</b><small>Convierte $...$ y $$...$$ en fórmulas dibujadas.</small></span>
+          </label>
+          <label class="select-label" for="mathMode">Modo de fórmulas</label>
+          <select id="mathMode">
+            <option value="auto" selected>Mixto: en línea manuscrita, bloque tipográfica</option>
+            <option value="typeset">Tipográficas: MathJax para todo</option>
+            <option value="handwritten">Manuscritas: conversión simple con tu letra</option>
+          </select>
+          <p class="setting-hint small">En línea: <code>$x^2$</code>. Bloque: <code>$$ ... $$</code>. En modo manuscrito se admiten fracciones y símbolos simples.</p>
+        </section>
       </div>
       <div class="drawer-foot">
         <button class="btn ghost" id="resetSettings">Restablecer</button>
@@ -414,6 +467,19 @@
       </div>
     </div>
 
+    <script>
+      window.MathJax = {
+        startup: { typeset: false },
+        options: { enableMenu: false },
+        tex: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]],
+          displayMath: [["$$", "$$"], ["\\[", "\\]"]],
+          processEscapes: true,
+        },
+        svg: { fontCache: "local" },
+      };
+    </script>
+    <script src="/vendor/mathjax/tex-svg.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

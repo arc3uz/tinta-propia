@@ -6,6 +6,33 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
+### Added
+
+- Fórmulas LaTeX en línea con `$...$` y en bloque con `$$...$$`.
+- MathJax 3.2.2 incluido en la aplicación para renderizar fórmulas sin conexión.
+- Tres modos de fórmulas: mixto, tipográfico y manuscrito.
+- Botón `ƒx`, menú **Insertar fórmula** y fórmula de ejemplo en la plantilla.
+- Mezcla de hasta cuatro fuentes manuscritas, por sección o por línea, con intensidad ajustable.
+- Diseño de hoja en **3 columnas horizontales** para A4, Carta, Legal, A5 y Oficio.
+- Guías punteadas entre columnas y salto de columna con `[[COLUMNBREAK]]`.
+- Numeración por hoja, impresión horizontal y PDF con las mismas dimensiones.
+- Sección de fórmulas, hoja y mezcla de fuentes en los ajustes.
+- Documentación de fórmulas, fuentes y columnas en el README y en los avisos de terceros.
+
+### Changed
+
+- La plantilla de ejemplo incluye fórmulas y muestra los saltos de columna.
+- El zoom, el estado y el contador distinguen hojas de páginas cuando hay columnas.
+- La versión visible se sincroniza desde los metadatos de la aplicación.
+
+### Fixed
+
+- El render de fórmulas ya no intenta cargar el worker de accesibilidad de MathJax.
+- Las fórmulas en bloque admiten también la sintaxis `\[...\]`.
+- Los títulos no quedan solos al final de una columna si el siguiente bloque no cabe.
+
 ## [0.1.1] - 2026-11-20
 
 ### Added

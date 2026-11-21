@@ -4,9 +4,10 @@ import iconUrl from "./assets/brand/icon.png";
 import exampleMd from "./assets/example.md?raw";
 import { MarkdownEditor } from "./editor.js";
 import { initMermaid, renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
+import { prepareMath } from "./math.js";
 import {
   renderDocument,
-  PAGE_SIZES,
+  pageDimensions,
   DEFAULT_SETTINGS,
   PRESETS,
   FONTS,
@@ -45,8 +46,18 @@ const SETTING_IDS = [
   "headingInk",
   "margins",
   "pageSize",
+  "layout",
+  "columnGuides",
   "markdown",
   "numberPages",
+  "mathEnabled",
+  "mathMode",
+  "mixFonts",
+  "mixStrength",
+  "mixMode",
+  "mixFont1",
+  "mixFont2",
+  "mixFont3",
 ];
 const NUMERIC_IDS = new Set([
   "size",
@@ -59,8 +70,9 @@ const NUMERIC_IDS = new Set([
   "slant",
   "bleed",
   "seed",
+  "mixStrength",
 ]);
-const BOOL_IDS = new Set(["markdown", "numberPages"]);
+const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", "columnGuides"]);
 
 const app = {
   isTauri,
@@ -92,6 +104,7 @@ const app = {
   outlineTimer: null,
   statsTimer: null,
   mermaidCache: new Map(),
+  mathCache: new Map(),
   mermaidErrors: new Map(),
   mermaidQueue: new Set(),
   mermaidJobRunning: false,
@@ -344,7 +357,7 @@ function showProgress(title, subtitle) {
 
 function fallbackBootstrap() {
   return {
-    version: "0.1.1",
+    version: "0.2.0",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -395,9 +408,19 @@ async function registerFont(name, base64) {
 }
 
 async function ensureFont(family) {
+  const families = [
+    family,
+    app.settings.mixFont1,
+    app.settings.mixFont2,
+    app.settings.mixFont3,
+  ].filter(Boolean);
   try {
-    await document.fonts.load(`400 26px "${family}"`);
-    await document.fonts.load(`700 26px "${family}"`);
+    await Promise.all(
+      [...new Set(families)].flatMap((name) => [
+        document.fonts.load(`400 26px "${name}"`).catch(() => null),
+        document.fonts.load(`700 26px "${name}"`).catch(() => null),
+      ])
+    );
     await document.fonts.ready;
   } catch {
     /* si la fuente no está, el canvas usará la cursiva del sistema */
@@ -556,8 +579,8 @@ function setActiveOutline(line) {
 
 /* ───────────────────────── Ajustes ───────────────────────── */
 
-function populateFontSelect(selected) {
-  const select = $("font");
+function fillFontSelect(select, selected) {
+  if (!select) return;
   select.innerHTML = "";
   for (const font of app.fontList) {
     const option = document.createElement("option");
@@ -574,21 +597,27 @@ function populateFontSelect(selected) {
   if (selected) select.value = selected;
 }
 
+function populateFontSelect(selected) {
+  fillFontSelect($("font"), selected);
+  fillFontSelect($("mixFont1"), app.settings.mixFont1 || "Papernotes");
+  fillFontSelect($("mixFont2"), app.settings.mixFont2 || "Caveat");
+  fillFontSelect($("mixFont3"), app.settings.mixFont3 || "Kalam");
+}
+
 function syncSettingsControls() {
   for (const id of SETTING_IDS) {
     const el = $(id);
     if (!el) continue;
     const value = app.settings[id];
     if (BOOL_IDS.has(id)) el.checked = value !== false;
-    else if (id === "font") {
-      populateFontSelect(value);
-    } else {
+    else {
       el.value = value ?? "";
     }
   }
+  populateFontSelect(app.settings.font);
   const custom = $("preset").querySelector('option[value="custom"]');
   if (custom) {
-    const ignore = new Set(["pageSize", "markdown", "numberPages"]);
+    const ignore = new Set(["pageSize", "layout", "columnGuides", "markdown", "numberPages"]);
     const matchesApunte = Object.entries(PRESETS.apunte.values).every(
       ([key, value]) => ignore.has(key) || app.settings[key] === value
     );
@@ -623,6 +652,7 @@ function syncRangeOutputs() {
     bleed: (v) => parseFloat(v).toFixed(1),
     tracking: (v) => `${parseFloat(v).toFixed(2)}×`,
     wordSpacing: (v) => `${parseFloat(v).toFixed(2)}×`,
+    mixStrength: (v) => `${Math.round(v)} %`,
   };
   for (const [id, formatter] of Object.entries(formats)) {
     const input = $(id);
@@ -632,19 +662,16 @@ function syncRangeOutputs() {
 }
 
 function updatePrintStyle() {
-  const cfg = PAGE_SIZES[app.settings.pageSize] || PAGE_SIZES.a4;
+  const cfg = pageDimensions(app.settings);
   let style = document.getElementById("dynamicPrintStyle");
   if (!style) {
     style = document.createElement("style");
     style.id = "dynamicPrintStyle";
     document.head.append(style);
   }
-  const cssSize =
-    app.settings.pageSize === "oficio" ? "216mm 330mm" : cfg.label.toLowerCase();
-  const cssLabel = app.settings.pageSize === "letter" ? "letter" : cssSize;
   style.textContent = `
 @media print {
-  @page { size: ${cssLabel}; margin: 0; }
+  @page { size: ${cfg.mmW}mm ${cfg.mmH}mm; margin: 0; }
   .page-wrap { width: ${cfg.mmW}mm; height: ${cfg.mmH}mm; }
   .page-wrap canvas { width: ${cfg.mmW}mm !important; height: ${cfg.mmH}mm !important; }
 }`;
@@ -654,10 +681,10 @@ function onSettingsChanged(event) {
   const id = event?.target?.id;
   app.settings = readSettingsFromControls();
   syncRangeOutputs();
-  if (id === "pageSize") updatePrintStyle();
+  if (id === "pageSize" || id === "layout") updatePrintStyle();
   updatePreviewMeta();
   const preset = $("preset");
-  const structural = new Set(["pageSize", "markdown", "numberPages"]);
+  const structural = new Set(["pageSize", "layout", "columnGuides", "markdown", "numberPages"]);
   if (preset && id !== "preset" && !structural.has(id)) {
     const custom = preset.querySelector('option[value="custom"]');
     if (custom) preset.value = "custom";
@@ -675,6 +702,8 @@ function applyPreset(name) {
     ...app.settings,
     ...preset.values,
     pageSize: app.settings.pageSize,
+    layout: app.settings.layout,
+    columnGuides: app.settings.columnGuides,
     markdown: app.settings.markdown,
     numberPages: app.settings.numberPages,
   };
@@ -888,6 +917,18 @@ async function compile({ initial = false, preservePage = true } = {}) {
       return;
     }
 
+    const mathResult = await prepareMath(
+      markdown,
+      app.settings,
+      app.mathCache,
+      (done, total) => {
+        if (gen === app.compileGen) {
+          setCompileState("busy", total ? `Fórmulas ${done}/${total}…` : "Compilando…");
+        }
+      }
+    );
+    if (gen !== app.compileGen) return;
+
     const usedCodes = new Set(extractMermaidBlocks(markdown).map((block) => block.code));
     for (const key of Array.from(app.mermaidCache.keys())) {
       if (!usedCodes.has(key)) app.mermaidCache.delete(key);
@@ -910,6 +951,7 @@ async function compile({ initial = false, preservePage = true } = {}) {
       images: app.images,
       mermaidImages: app.mermaidCache,
       pendingMermaid: pendingSet,
+      mathImages: mathResult.images,
     });
     if (gen !== app.compileGen) {
       releasePages(result.pages);
@@ -923,7 +965,10 @@ async function compile({ initial = false, preservePage = true } = {}) {
     updateDocStats();
     if (pendingCodes.length) ensureMermaidDiagrams(pendingCodes);
 
-    const warnings = [...result.warnings];
+    const warnings = [
+      ...mathResult.errors.map((error) => error.message),
+      ...result.warnings,
+    ];
     if (warnings.length) {
       setCompileState("warn", "Listo con avisos");
       const key = warnings.join("|").slice(0, 240);
@@ -942,7 +987,8 @@ async function compile({ initial = false, preservePage = true } = {}) {
       setCompileState("ok", "Listo");
     }
     const elapsed = Math.round(performance.now() - started);
-    $("sbCompile").textContent = `Compilado en ${elapsed} ms · ${app.pages.length} pág.`;
+    const unit = app.settings.layout === "columns" ? "hojas" : "pág.";
+    $("sbCompile").textContent = `Compilado en ${elapsed} ms · ${app.pages.length} ${unit}`;
   } catch (error) {
     console.error(error);
     setCompileState("error", "Error de compilación");
@@ -1039,7 +1085,10 @@ function mountPreview(result, { preservePage = true } = {}) {
     wrap.dataset.page = String(index + 1);
     wrap.append(canvas);
     wrap.append(
-      createEl("span", { class: "page-label", text: `Página ${index + 1}` })
+      createEl("span", {
+        class: "page-label",
+        text: `${app.settings.layout === "columns" ? "Hoja" : "Página"} ${index + 1}`,
+      })
     );
     const actions = createEl("div", { class: "page-actions" }, [
       createEl(
@@ -1143,11 +1192,13 @@ function updatePageNavigation() {
 }
 
 function updatePreviewMeta() {
-  const cfg = PAGE_SIZES[app.settings.pageSize] || PAGE_SIZES.a4;
+  const cfg = pageDimensions(app.settings);
   const count = app.pages.length;
-  $("previewSize").textContent = cfg.label;
-  $("paperInfo").textContent = `${cfg.label} · ${cfg.mmW} × ${cfg.mmH} mm`;
-  $("pageCountStatus").textContent = `${count} ${count === 1 ? "página" : "páginas"}`;
+  const unit = cfg.columns > 1 ? "hoja" : "página";
+  const units = cfg.columns > 1 ? "hojas" : "páginas";
+  $("previewSize").textContent = `${cfg.label}${cfg.columns > 1 ? " · 3 col" : ""}`;
+  $("paperInfo").textContent = `${cfg.label} · ${cfg.mmW} × ${cfg.mmH} mm${cfg.columns > 1 ? " · 3 columnas" : ""}`;
+  $("pageCountStatus").textContent = `${count} ${count === 1 ? unit : units}`;
   $("pageTotal").textContent = `/ ${count}`;
   if (count) {
     $("pageInput").value = String(app.currentPage);
@@ -1155,7 +1206,7 @@ function updatePreviewMeta() {
   }
   const text = app.editor ? app.editor.getValue() : "";
   const bytes = new TextEncoder().encode(text).length;
-  $("fileMeta").textContent = `Markdown · ${formatBytes(bytes)}${count ? ` · ${count} pág.` : ""}`;
+  $("fileMeta").textContent = `Markdown · ${formatBytes(bytes)}${count ? ` · ${count} ${cfg.columns > 1 ? "hojas" : "pág."}` : ""}`;
 }
 
 /* ───────────────────────── Imágenes y Mermaid ───────────────────────── */
@@ -1260,6 +1311,59 @@ function openMermaidModal() {
           app.editor.insertText(`\n${block}`, { block: true });
           markDirty();
           scheduleCompile(180);
+          scheduleAutosave(1200);
+        },
+      },
+    ],
+  });
+  setTimeout(() => textarea.focus(), 40);
+  return modal;
+}
+
+function openFormulaModal() {
+  const textarea = createEl("textarea", {
+    class: "mermaid-input",
+    spellcheck: "false",
+    placeholder: "E = mc^2\n\\frac{a}{b}\n\\sum_{i=1}^{n} p_i",
+  });
+  const type = createEl("select", {}, [
+    createEl("option", { value: "inline", text: "En línea ($...$)" }),
+    createEl("option", { value: "block", text: "Bloque centrado ($$...$$)" }),
+  ]);
+  const body = createEl("div", {}, [
+    textarea,
+    createEl("label", { class: "select-label", for: "formula-type", text: "Tipo de fórmula" }),
+    type,
+    createEl("p", {
+      class: "modal-hint",
+      text:
+        "El modo Mixto escribe las fórmulas en línea con tu letra y usa MathJax para los bloques. Puedes cambiarlo en Ajustes → Fórmulas.",
+    }),
+  ]);
+  type.id = "formula-type";
+  const modal = showModal({
+    title: "Insertar fórmula",
+    subtitle: "LaTeX simple o completo.",
+    body,
+    actions: [
+      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
+      {
+        label: "Insertar fórmula",
+        kind: "primary",
+        onClick: (close) => {
+          const code = textarea.value.trim();
+          if (!code) {
+            toast("Escribe una fórmula primero.", { type: "warn" });
+            return;
+          }
+          close();
+          const formula =
+            type.value === "block"
+              ? `$$\n${code}\n$$`
+              : `$${code}$`;
+          app.editor.insertText(`\n${formula}\n`, { block: true });
+          markDirty();
+          scheduleCompile(220);
           scheduleAutosave(1200);
         },
       },
@@ -1739,7 +1843,9 @@ async function exportPDF() {
       filters: [{ name: "PDF", extensions: ["pdf"] }],
     });
     if (!path) return;
-    const cfg = PAGE_SIZES[app.settings.pageSize] || PAGE_SIZES.a4;
+    const cfg = app.result
+      ? { mmW: app.result.mmWidth, mmH: app.result.mmHeight }
+      : pageDimensions(app.settings);
     const widthPt = (cfg.mmW / 25.4) * 72;
     const heightPt = (cfg.mmH / 25.4) * 72;
     const total = app.pages.length;
@@ -1850,8 +1956,8 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.1.1"],
-    ["Motor", "Canvas 2D + Mermaid 12"],
+    ["Versión", app.boot?.version || "0.2.0"],
+    ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
     ["Privacidad", "Sin red, sin cuentas, sin telemetría"],
@@ -2031,11 +2137,17 @@ function handleFormat(action) {
     case "image":
       $("hiddenImageInput").click();
       return;
+    case "formula":
+      openFormulaModal();
+      return;
     case "mermaid":
       openMermaidModal();
       return;
     case "pagebreak":
       app.editor.insertText("\n[[PAGEBREAK]]\n", { block: true });
+      break;
+    case "columnbreak":
+      app.editor.insertText("\n[[COLUMNBREAK]]\n", { block: true });
       break;
     default:
       return;
@@ -2284,11 +2396,17 @@ function bindEditorEvents() {
       case "insert-image":
         $("hiddenImageInput").click();
         break;
+      case "insert-formula":
+        openFormulaModal();
+        break;
       case "insert-mermaid":
         openMermaidModal();
         break;
       case "page-break":
         handleFormat("pagebreak");
+        break;
+      case "column-break":
+        handleFormat("columnbreak");
         break;
       case "settings":
         openSettings();
@@ -2439,6 +2557,7 @@ async function setupTauriCloseHandler() {
 async function boot() {
   initMermaid();
   app.boot = await readBootstrap();
+  if (app.boot?.version) $("sbVersion").textContent = `v${app.boot.version}`;
   if (app.boot.customFonts?.length) {
     for (const font of app.boot.customFonts) {
       try {

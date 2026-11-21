@@ -10,6 +10,7 @@ Tinta Propia es software libre bajo licencia MIT. Incluye o utiliza los siguient
 | [Rust](https://www.rust-lang.org/) | Backend, PDF y sistema de archivos | MIT o Apache-2.0 |
 | [CodeMirror 6](https://codemirror.net/) | Editor Markdown | MIT |
 | [Mermaid](https://mermaid.js.org/) | Diagramas | MIT |
+| [MathJax](https://www.mathjax.org/) | Fórmulas LaTeX | Apache-2.0 |
 | [Vite](https://vite.dev/) | Build del frontend | MIT |
 | [Crates de Rust](https://crates.io/) | Dependencias del backend | Principalmente MIT o Apache-2.0; ver `src-tauri/Cargo.lock` |
 

@@ -21,7 +21,10 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Espaciado entre palabras y letras ajustable; tinta, márgenes, realismo, temblor, presión, inclinación y semilla.
 - Títulos rojos y cuerpo azul sobre papel blanco liso, sin cuadrícula ni margen rojo.
 - Diagramas Mermaid renderizados automáticamente en segundo plano.
-- Tablas, callouts, listas, citas, código en cajas y saltos de página.
+- Fórmulas LaTeX con MathJax y modo manuscrito simple.
+- Mezcla configurable de hasta cuatro fuentes manuscritas.
+- Diseño de hoja en una columna o en **3 columnas horizontales**.
+- Tablas, callouts, listas, citas, código en cajas, saltos de página y de columna.
 - Imágenes insertadas con tokens `[[IMG:n]]` y guardadas dentro del proyecto.
 - Índice con números de página automáticos.
 - Proyectos `.papernotes`, autoguardado y restauración de sesión.
@@ -288,6 +291,55 @@ La extensión `.papernotes` se mantiene por compatibilidad con los proyectos cre
 
 Al exportar Markdown plano, las imágenes no se incluyen: quedan como tokens `[[IMG:n]]`. Para conservarlas hay que guardar el proyecto `.papernotes` o exportar el PDF.
 
+## Fórmulas
+
+Se pueden usar las sintaxis habituales:
+
+```markdown
+La probabilidad es $P(A \mid B)$.
+
+$$
+H(X) = -\sum_{i=1}^{n} p_i \log_2 p_i
+$$
+```
+
+En **Ajustes → Fórmulas** hay tres modos:
+
+- **Mixto (recomendado):** las fórmulas en línea se escriben con tu letra; los bloques usan MathJax.
+- **Tipográficas:** todo se renderiza con MathJax.
+- **Manuscritas:** todo se convierte a una versión simple con tu letra.
+
+MathJax está incluido en la aplicación y funciona sin conexión. Las fórmulas se rasterizan dentro de la página, así que también aparecen en el PDF.
+
+Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se muestran como texto. En modo manuscrito, las fracciones y raíces se simplifican a una expresión lineal.
+
+## Mezcla de fuentes
+
+En **Ajustes → Letra y tinta** se puede activar **Mezclar manos**:
+
+- Fuente principal (por ejemplo, `MiLetra IIC2531`).
+- Hasta tres fuentes secundarias.
+- Intensidad de 0 a 100 %.
+- Mezcla **por sección** (recomendada) o **por línea**.
+
+La elección es determinista: el mismo documento y la misma semilla producen el mismo resultado en pantalla y en el PDF. La fuente principal sigue siendo la dominante.
+
+## Tres columnas
+
+En **Ajustes → Hoja → Diseño de hoja** se puede elegir:
+
+```text
+Una columna (vertical)
+3 columnas (horizontal)
+```
+
+La hoja elegida (A4, Carta, Legal, A5 u Oficio) se usa horizontal y el texto fluye por las tres columnas. No es un folleto plegado: se aprovecha la hoja completa. Las guías punteadas entre columnas se pueden desactivar.
+
+- `[[PAGEBREAK]]` empieza una hoja nueva.
+- `[[COLUMNBREAK]]` pasa a la siguiente columna.
+- La numeración de páginas cuenta **hojas**, no columnas.
+- El PDF y la impresión salen en horizontal.
+
 ## Mermaid
 
 Los bloques se escriben directamente en el documento:
@@ -314,8 +366,12 @@ src/
   mermaid.js    render de Mermaid a imagen
   styles.css    interfaz tipo Overleaf
   fonts.css     fuentes locales
+  math.js       fórmulas MathJax y modo manuscrito
   assets/       fuente calibrada, fuentes incluidas y plantilla de ejemplo
   assets/example.md
+
+public/vendor/mathjax/
+  tex-svg.js    MathJax 3.2.2 local
 
 src-tauri/
   src/lib.rs        comandos Tauri
@@ -348,7 +404,8 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 
 ## Notas y límites
 
-- El PDF se rasteriza a 1,5× el tamaño del canvas. Un documento de 59 páginas ronda los 25 MB.
+- El PDF se rasteriza a 1,5× el tamaño del canvas. Un documento extenso ronda los 25 MB.
+- En el modo de 3 columnas cada hoja contiene tres columnas de texto; la numeración y el PDF cuentan hojas.
 - La primera compilación de un documento con muchos diagramas Mermaid puede tardar; el resto usa la caché en memoria.
 - Las imágenes se guardan como data URLs dentro del proyecto: un proyecto con muchas fotos puede pesar varios MB.
 - El tamaño de hoja afecta al canvas, a la vista previa y al PDF.
@@ -360,7 +417,7 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 - Aplicación: Tinta Propia.
 - Motor de manuscrito y fuentes originales: herramienta `Manuscrito Papernotes.html`.
 - Fuente calibrada: `MiLetra IIC2531.ttf`.
-- Mermaid 12.3.0, CodeMirror 6, Tauri 2 y Rust.
+- Mermaid 12.3.0, MathJax 3.2.2, CodeMirror 6, Tauri 2 y Rust.
 
 ## Documentación
 
