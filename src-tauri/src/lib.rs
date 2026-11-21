@@ -7,7 +7,7 @@ use pdf::PdfExportRequest;
 use serde::Serialize;
 use serde_json::Value;
 use std::path::Path;
-use storage::RecentProject;
+use storage::{LibraryProject, RecentProject};
 use tauri::AppHandle;
 
 #[derive(Serialize)]
@@ -96,6 +96,21 @@ fn save_settings(app: AppHandle, settings: Value) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn list_library(app: AppHandle) -> Result<Vec<LibraryProject>, String> {
+    storage::list_library(&app)
+}
+
+#[tauri::command]
+fn set_project_tags(path: String, tags: Vec<String>) -> Result<(), String> {
+    storage::set_project_tags(&path, tags)
+}
+
+#[tauri::command]
+fn move_project_to_folder(app: AppHandle, path: String, folder: String) -> Result<String, String> {
+    storage::move_project_to_folder(&app, &path, &folder)
+}
+
+#[tauri::command]
 fn recent_projects(app: AppHandle) -> Vec<RecentProject> {
     storage::recent_projects(&app)
 }
@@ -171,6 +186,9 @@ pub fn run() {
             load_settings,
             save_settings,
             recent_projects,
+            list_library,
+            set_project_tags,
+            move_project_to_folder,
             touch_recent,
             remove_recent,
             read_text_file,

@@ -32,8 +32,9 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Exportación PDF nativa con Rust y exportación PNG por página.
 - Importación de Markdown y de fuentes TTF/OTF/WOFF.
 - Proyectos recientes y carpeta de datos accesible desde el menú.
-- Pantalla de inicio con accesos rápidos y proyectos recientes.
+- Pantalla de inicio con accesos rápidos, biblioteca de proyectos en árbol y recientes.
 - Tamaño de letra ajustable entre 12 y 38 px, con atajos de 12, 14, 16, 20 y 26 px.
+- Pantalla completa con el botón de la barra superior o `F11`.
 - Atajos de teclado y cierre con `Ctrl+Q` guardando la sesión.
 
 ## Requisitos
@@ -232,7 +233,9 @@ El repositorio incluye dos workflows:
 6. Guarda con `Ctrl+S` como proyecto `.papernotes`.
 7. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
 
-Puedes volver a la pantalla de inicio con **Menú → Inicio**.
+Puedes volver a la pantalla de inicio con **Menú → Inicio**. Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
+
+Los proyectos nuevos se guardan por defecto dentro de la biblioteca; si guardas uno en otra ubicación, seguirá apareciendo en **Recientes fuera de la biblioteca**. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
 
 Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Menú → Cargar plantilla de ejemplo**. Para empezar completamente en blanco, usa **Menú → Nuevo proyecto**.
 
@@ -250,6 +253,7 @@ Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Men�
 | Negrita / cursiva / código | `Ctrl+B` / `Ctrl+I` / `Ctrl+E` |
 | Buscar | `Ctrl+F` |
 | Exportar PDF | `Ctrl+Shift+E` |
+| Pantalla completa | `F11` |
 | Salir | `Ctrl+Q` |
 
 ## Dónde se guardan los datos
@@ -285,6 +289,7 @@ Un `.papernotes` es un JSON legible:
   "path": "/ruta/al/proyecto.papernotes",
   "document": "# Título\n\nTexto…",
   "settings": { "font": "<fuente elegida>", "pageSize": "a4" },
+  "tags": ["repaso", "examen"],
   "assets": {
     "1": { "data": "data:image/png;base64,…", "displayW": 800 }
   },

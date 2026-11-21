@@ -82,6 +82,7 @@ const app = {
   editor: null,
   title: "Sin título",
   projectPath: null,
+  tags: [],
   settings: { ...DEFAULT_SETTINGS },
   assets: {},
   images: new Map(),
@@ -234,6 +235,7 @@ function showModal({
   body = null,
   actions = [],
   narrow = false,
+  wide = false,
   dismissible = true,
   onClose = null,
 }) {
@@ -264,7 +266,7 @@ function showModal({
   const modal = createEl(
     "div",
     {
-      class: `modal${narrow ? " narrow" : ""}`,
+      class: `modal${narrow ? " narrow" : ""}${wide ? " wide" : ""}`,
       role: "dialog",
       "aria-modal": "true",
       "aria-label": title,
@@ -373,7 +375,7 @@ function showProgress(title, subtitle) {
 
 function fallbackBootstrap() {
   return {
-    version: "0.3.0",
+    version: "0.4.0",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -464,6 +466,9 @@ function applyPayloadToState(payload) {
   app.title = payload.title || "Sin título";
   app.projectPath = payload.path || null;
   app.settings = normalizeSettings({ ...DEFAULT_SETTINGS, ...(payload.settings || {}) });
+  app.tags = Array.isArray(payload.tags)
+    ? payload.tags.filter((tag) => typeof tag === "string" && tag.trim())
+    : [];
   app.assets = payload.assets || {};
   app.imageSeq = Math.max(
     Number(payload.imageSeq) || 0,
@@ -815,6 +820,7 @@ function buildProject() {
     path: app.projectPath || null,
     document: app.editor ? app.editor.getValue() : "",
     settings: { ...app.settings },
+    tags: [...app.tags],
     assets: app.assets || {},
     imageSeq: app.imageSeq,
     updatedAt: Date.now(),
@@ -1503,6 +1509,7 @@ async function loadExampleTemplate() {
   app.compileGen += 1;
   app.title = "Plantilla de ejemplo";
   app.projectPath = null;
+  app.tags = [];
   app.assets = {};
   app.images = new Map();
   app.imageSeq = 0;
@@ -1536,6 +1543,7 @@ async function newProject() {
   app.compileGen += 1;
   app.title = "Sin título";
   app.projectPath = null;
+  app.tags = [];
   app.settings = { ...DEFAULT_SETTINGS };
   app.assets = {};
   app.images = new Map();
@@ -1707,6 +1715,340 @@ async function showRecentProjects() {
   });
 }
 
+async function loadLibraryProjects() {
+  if (!app.isTauri) return [];
+  try {
+    return await invoke("list_library");
+  } catch (error) {
+    console.warn("No se pudo cargar la biblioteca", error);
+    return [];
+  }
+}
+
+async function loadRecentProjects() {
+  if (!app.isTauri) return app.boot?.recent || [];
+  try {
+    return await invoke("recent_projects");
+  } catch {
+    return app.boot?.recent || [];
+  }
+}
+
+function countLibraryProjects(folder) {
+  let count = folder.projects.length;
+  for (const child of folder.folders.values()) count += countLibraryProjects(child);
+  return count;
+}
+
+function buildLibraryTree(projects) {
+  const root = { folders: new Map(), projects: [] };
+  for (const project of projects) {
+    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
+    let node = root;
+    for (const part of parts) {
+      if (!node.folders.has(part)) {
+        node.folders.set(part, { name: part, folders: new Map(), projects: [] });
+      }
+      node = node.folders.get(part);
+    }
+    node.projects.push(project);
+  }
+  return root;
+}
+
+function sortLibraryTree(node) {
+  node.projects.sort((a, b) =>
+    (a.title || "").localeCompare(b.title || "", "es", { sensitivity: "base" })
+  );
+  for (const folder of node.folders.values()) sortLibraryTree(folder);
+}
+
+function collectLibraryFolders(projects) {
+  const folders = new Set();
+  for (const project of projects) {
+    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      folders.add(current);
+    }
+  }
+  return [...folders].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+}
+
+function editProjectTags(project, refresh) {
+  if (!app.isTauri) return;
+  const input = createEl("input", { type: "text", placeholder: "examen, repaso, pendientes" });
+  input.value = Array.isArray(project.tags) ? project.tags.join(", ") : "";
+  const body = createEl("div", {}, [
+    createEl("label", { class: "select-label", for: "library-tags-input", text: "Etiquetas separadas por comas" }),
+    input,
+    createEl("p", {
+      class: "setting-hint small",
+      text: "Sirven para reconocer y agrupar proyectos dentro de la biblioteca.",
+    }),
+  ]);
+  input.id = "library-tags-input";
+  const modal = showModal({
+    title: "Editar etiquetas",
+    subtitle: project.title || "Sin título",
+    body,
+    narrow: true,
+    actions: [
+      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
+      {
+        label: "Guardar etiquetas",
+        kind: "primary",
+        onClick: async (close) => {
+          const tags = [
+            ...new Set(
+              input.value
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter(Boolean)
+            ),
+          ].slice(0, 12);
+          try {
+            await invoke("set_project_tags", { path: project.path, tags });
+            if (app.projectPath === project.path) {
+              app.tags = tags;
+              scheduleAutosave(200);
+            }
+            close();
+            toast("Etiquetas actualizadas.", { title: "Biblioteca" });
+            await refresh();
+          } catch (error) {
+            console.error(error);
+            toast(`No se pudieron guardar las etiquetas: ${error}`, { type: "error" });
+          }
+        },
+      },
+    ],
+  });
+  setTimeout(() => input.focus(), 40);
+  return modal;
+}
+
+function moveProjectDialog(project, folders, refresh) {
+  if (!app.isTauri) return;
+  const input = createEl("input", {
+    type: "text",
+    list: "library-folder-options",
+    placeholder: "Sin carpeta (raíz)",
+  });
+  input.value = project.folder || "";
+  const list = createEl("datalist", { id: "library-folder-options" });
+  for (const folder of folders) list.append(createEl("option", { value: folder }));
+  const body = createEl("div", {}, [
+    createEl("label", {
+      class: "select-label",
+      for: "library-folder-input",
+      text: "Carpeta dentro de la biblioteca",
+    }),
+    input,
+    list,
+    createEl("p", {
+      class: "setting-hint small",
+      text: "Déjalo vacío para la raíz. Si la carpeta no existe, se crea al mover el proyecto.",
+    }),
+  ]);
+  input.id = "library-folder-input";
+  const modal = showModal({
+    title: "Mover a carpeta",
+    subtitle: project.title || "Sin título",
+    body,
+    narrow: true,
+    actions: [
+      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
+      {
+        label: "Mover proyecto",
+        kind: "primary",
+        onClick: async (close) => {
+          try {
+            const newPath = await invoke("move_project_to_folder", {
+              path: project.path,
+              folder: input.value.trim(),
+            });
+            if (app.projectPath === project.path) {
+              app.projectPath = newPath;
+              updateTitleUI();
+              scheduleAutosave(100);
+            }
+            close();
+            toast("Proyecto movido de carpeta.", { title: "Biblioteca" });
+            await refresh();
+          } catch (error) {
+            console.error(error);
+            toast(`No se pudo mover el proyecto: ${error}`, { type: "error" });
+          }
+        },
+      },
+    ],
+  });
+  setTimeout(() => input.focus(), 40);
+  return modal;
+}
+
+function createLibraryRow(project, closeWelcome, refresh, folders) {
+  const row = createEl("div", { class: "library-project", title: project.path });
+  const tags = Array.isArray(project.tags) ? project.tags : [];
+  const updated = project.updatedAt ? formatRelative(project.updatedAt) : "";
+  const meta = [updated, project.size ? formatBytes(project.size) : ""].filter(Boolean).join(" · ");
+  const open = createEl("button", { class: "library-open", type: "button" }, [
+    svgIcon("file"),
+    createEl("span", { class: "library-copy" }, [
+      createEl("strong", { text: project.title || "Sin título" }),
+      tags.length
+        ? createEl(
+            "span",
+            { class: "library-tags" },
+            tags.map((tag) => createEl("span", { class: "library-tag", text: tag }))
+          )
+        : null,
+      createEl("small", { text: meta }),
+    ]),
+    app.projectPath === project.path
+      ? createEl("span", { class: "library-current", text: "Actual" })
+      : null,
+  ]);
+  open.addEventListener("click", () => {
+    closeWelcome();
+    openProjectPath(project.path);
+  });
+  const actions = createEl("div", { class: "library-actions" }, [
+    createEl(
+      "button",
+      {
+        class: "icon-btn",
+        title: "Editar etiquetas",
+        "aria-label": `Editar etiquetas de ${project.title || "Sin título"}`,
+      },
+      [svgIcon("tag")]
+    ),
+    createEl(
+      "button",
+      {
+        class: "icon-btn",
+        title: "Mover a carpeta",
+        "aria-label": `Mover ${project.title || "Sin título"} a una carpeta`,
+      },
+      [svgIcon("folder")]
+    ),
+  ]);
+  actions.children[0].addEventListener("click", () => editProjectTags(project, refresh));
+  actions.children[1].addEventListener("click", () => moveProjectDialog(project, folders, refresh));
+  row.append(open, actions);
+  return row;
+}
+
+function renderLibraryNode(node, container, closeWelcome, refresh, folders) {
+  const sortedFolders = [...node.folders.values()].sort((a, b) =>
+    a.name.localeCompare(b.name, "es", { sensitivity: "base" })
+  );
+  for (const folder of sortedFolders) {
+    const details = createEl("details", { class: "library-folder" });
+    details.open = true;
+    const summary = createEl("summary", {}, [
+      svgIcon("folder"),
+      createEl("span", { class: "library-folder-name", text: folder.name }),
+      createEl("span", {
+        class: "library-folder-count",
+        text: String(countLibraryProjects(folder)),
+      }),
+    ]);
+    const children = createEl("div", { class: "library-children" });
+    renderLibraryNode(folder, children, closeWelcome, refresh, folders);
+    details.append(summary, children);
+    container.append(details);
+  }
+  for (const project of node.projects) {
+    container.append(createLibraryRow(project, closeWelcome, refresh, folders));
+  }
+}
+
+function renderLibrary(container, projects, closeWelcome, refresh) {
+  container.innerHTML = "";
+  const head = createEl("div", { class: "library-head" }, [
+    createEl("div", {}, [
+      createEl("div", { class: "recent-title", text: "Biblioteca" }),
+      createEl("small", {
+        class: "library-count",
+        text: projects.length
+          ? `${projects.length} ${projects.length === 1 ? "proyecto" : "proyectos"}`
+          : "Sin proyectos guardados",
+      }),
+    ]),
+    createEl("div", { class: "library-head-actions" }, [
+      app.isTauri
+        ? createEl(
+            "button",
+            {
+              class: "btn ghost small",
+              onclick: () =>
+                openPath(app.boot.projectsDir).catch(() =>
+                  toast("No se pudo abrir la carpeta de proyectos.", { type: "warn" })
+                ),
+            },
+            [svgIcon("folder"), "Abrir carpeta"]
+          )
+        : null,
+    ]),
+  ]);
+  container.append(head);
+  const tree = createEl("div", { class: "library-tree" });
+  if (!projects.length) {
+    tree.append(
+      createEl("div", { class: "library-empty" }, [
+        svgIcon("folder"),
+        createEl("p", {
+          text: app.isTauri
+            ? "Todavía no hay proyectos en la biblioteca."
+            : "La biblioteca está disponible en la app de escritorio.",
+        }),
+        createEl("small", {
+          text: app.isTauri
+            ? "Los proyectos guardados se ordenan aquí por carpeta. También puedes moverlos y etiquetarlos."
+            : "En el navegador solo se conserva la sesión actual.",
+        }),
+      ])
+    );
+  } else {
+    const root = buildLibraryTree(projects);
+    sortLibraryTree(root);
+    renderLibraryNode(root, tree, closeWelcome, refresh, collectLibraryFolders(projects));
+  }
+  container.append(tree);
+}
+
+function renderExternalRecents(container, projects, recent, closeWelcome) {
+  container.innerHTML = "";
+  const libraryPaths = new Set(projects.map((project) => project.path));
+  const items = recent.filter((item) => !libraryPaths.has(item.path));
+  if (!items.length) {
+    container.hidden = true;
+    return;
+  }
+  container.hidden = false;
+  container.append(createEl("div", { class: "recent-title", text: "Recientes fuera de la biblioteca" }));
+  for (const item of items.slice(0, 4)) {
+    const row = createEl("div", { class: "recent-row" });
+    const open = createEl("button", { class: "recent-open", type: "button" }, [
+      svgIcon("file"),
+      createEl("span", { class: "recent-copy" }, [
+        createEl("strong", { text: item.title || "Sin título" }),
+        createEl("small", { text: item.path }),
+      ]),
+      createEl("span", { class: "recent-time", text: formatRelative(item.openedAt) }),
+    ]);
+    open.addEventListener("click", () => {
+      closeWelcome();
+      openProjectPath(item.path);
+    });
+    row.append(open);
+    container.append(row);
+  }
+}
+
 async function showWelcome() {
   let modal = null;
   const body = createEl("div", { class: "welcome-box" });
@@ -1736,36 +2078,15 @@ async function showWelcome() {
   addCard("Cargar plantilla", "Usa el ejemplo de bienvenida.", "pen", loadExampleTemplate);
   body.append(grid);
 
-  let recent = [];
-  try {
-    recent = app.isTauri ? await invoke("recent_projects") : app.boot?.recent || [];
-  } catch {
-    recent = app.boot?.recent || [];
-  }
-  if (recent.length) {
-    const recentBox = createEl("div", { class: "welcome-recent" });
-    recentBox.append(createEl("div", { class: "recent-title", text: "Abrir reciente" }));
-    for (const item of recent.slice(0, 4)) {
-      const row = createEl("div", { class: "recent-row" });
-      const open = createEl("button", { class: "recent-open", type: "button" }, [
-        svgIcon("file"),
-        createEl("span", { class: "recent-copy" }, [
-          createEl("strong", { text: item.title || "Sin título" }),
-          createEl("small", { text: item.path }),
-        ]),
-        createEl("span", { class: "recent-time", text: formatRelative(item.openedAt) }),
-      ]);
-      open.addEventListener("click", () => run(() => openProjectPath(item.path)));
-      row.append(open);
-      recentBox.append(row);
-    }
-    body.append(recentBox);
-  }
+  const libraryBox = createEl("div", { class: "library-box" });
+  const recentBox = createEl("div", { class: "welcome-recent" });
+  body.append(libraryBox, recentBox);
 
   modal = showModal({
     title: "Tinta Propia",
     subtitle: "Elige cómo empezar. Este menú también está en Menú → Inicio.",
     body,
+    wide: true,
     actions: [
       {
         label: "Continuar con el documento actual",
@@ -1774,6 +2095,14 @@ async function showWelcome() {
       },
     ],
   });
+
+  const closeWelcome = () => modal?.close();
+  const refresh = async () => {
+    const [projects, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
+    renderLibrary(libraryBox, projects, closeWelcome, refresh);
+    renderExternalRecents(recentBox, projects, recent, closeWelcome);
+  };
+  await refresh();
 }
 
 async function openMarkdownFlow() {
@@ -1800,6 +2129,7 @@ async function openMarkdownFlow() {
     app.compileGen += 1;
     app.title = name.replace(/\.[^.]+$/, "") || "Sin título";
     app.projectPath = null;
+    app.tags = [];
     app.assets = {};
     app.images = new Map();
     app.imageSeq = 0;
@@ -1871,9 +2201,14 @@ async function saveProjectAs() {
     return;
   }
   try {
+    const libraryDir = app.boot?.projectsDir;
+    const separator = libraryDir?.includes("\\") ? "\\" : "/";
+    const defaultPath = libraryDir
+      ? `${libraryDir.replace(/[\\/]$/, "")}${separator}${slugify(app.title)}.papernotes`
+      : `${slugify(app.title)}.papernotes`;
     const path = await saveFileDialog({
       title: "Guardar proyecto Tinta Propia",
-      defaultPath: `${slugify(app.title)}.papernotes`,
+      defaultPath,
       filters: [
         { name: "Proyecto Tinta Propia", extensions: ["papernotes"] },
         { name: "JSON", extensions: ["json"] },
@@ -2037,6 +2372,22 @@ function showExportSuccess(path) {
 
 /* ───────────────────────── Externos ───────────────────────── */
 
+async function toggleFullscreen() {
+  try {
+    if (!app.isTauri) {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+      return;
+    }
+    const win = getCurrentWindow();
+    const full = await win.isFullscreen();
+    await win.setFullscreen(!full);
+  } catch (error) {
+    console.error(error);
+    toast("No se pudo cambiar la pantalla completa.", { type: "error" });
+  }
+}
+
 async function quitApp() {
   if (!app.isTauri) {
     window.close();
@@ -2076,7 +2427,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.3.0"],
+    ["Versión", app.boot?.version || "0.4.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -2408,6 +2759,7 @@ function bindEditorEvents() {
   $("emptyExampleBtn").addEventListener("click", loadExampleTemplate);
 
   $("compileBtn").addEventListener("click", () => compile());
+  $("fullscreenBtn").addEventListener("click", toggleFullscreen);
   $("exportPdfBtn").addEventListener("click", exportPDF);
   $("exportPdfBtn2").addEventListener("click", exportPDF);
 
@@ -2609,6 +2961,11 @@ function bindGlobalKeys() {
         event.preventDefault();
         return;
       }
+    }
+    if (event.key === "F11") {
+      event.preventDefault();
+      await toggleFullscreen();
+      return;
     }
     if (app.modalStack.length) return;
     if (mod && event.key.toLowerCase() === "s") {

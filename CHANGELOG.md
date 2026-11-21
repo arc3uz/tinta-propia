@@ -6,6 +6,27 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-20
+
+### Added
+
+- Biblioteca de proyectos en la pantalla de inicio, con árbol de carpetas ordenado.
+- Etiquetas por proyecto, guardadas dentro del archivo `.papernotes`.
+- Acción **Mover a carpeta** para organizar proyectos dentro de la biblioteca.
+- Acceso directo a la carpeta de la biblioteca desde la pantalla de inicio.
+- Botón de pantalla completa y atajo `F11`.
+
+### Changed
+
+- **Guardar como** propone por defecto la carpeta de la biblioteca.
+- Los proyectos recientes que están fuera de la biblioteca se muestran aparte.
+- El proyecto abierto se marca como **Actual** dentro de la biblioteca.
+
+### Fixed
+
+- El botón de pantalla completa ahora cambia el estado real de la ventana.
+- Se separó el icono de ajustar al ancho del de pantalla completa.
+
 ## [0.3.0] - 2026-11-20
 
 ### Added
