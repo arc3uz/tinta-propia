@@ -6,6 +6,17 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-20
+
+### Added
+
+- Vista previa MathJax en vivo dentro de la paleta de fórmulas.
+- Las fracciones manuscritas se dibujan apiladas, con numerador, barra y denominador.
+
+### Changed
+
+- La vista previa se actualiza al escribir o al insertar una fórmula rápida.
+
 ## [0.6.1] - 2026-11-20
 
 ### Changed

@@ -114,7 +114,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.6.1",
+    version: "0.6.2",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -1407,7 +1407,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.6.1"],
+    ["Versión", app.boot?.version || "0.6.2"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],

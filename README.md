@@ -316,7 +316,7 @@ H(X) = -\sum_{i=1}^{n} p_i \log_2 p_i
 $$
 ```
 
-La paleta **Insertar fórmula** incluye fracciones, raíces, sumatorias, integrales, probabilidad, letras griegas y matrices. Recuerda las fórmulas más usadas y las recientes. Se abre con el botón `ƒx`, con **Menú → Insertar fórmula** o con `Ctrl+Shift+F`.
+La paleta **Insertar fórmula** incluye fracciones, raíces, sumatorias, integrales, probabilidad, letras griegas y matrices, con una **vista previa MathJax en vivo**. Recuerda las fórmulas más usadas y las recientes. Se abre con el botón `ƒx`, con **Menú → Insertar fórmula** o con `Ctrl+Shift+F`.
 
 En **Ajustes → Fórmulas** hay tres modos:
 
@@ -326,7 +326,7 @@ En **Ajustes → Fórmulas** hay tres modos:
 
 MathJax está incluido en la aplicación y funciona sin conexión. Las fórmulas se rasterizan dentro de la página, así que también aparecen en el PDF.
 
-Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se muestran como texto. En modo manuscrito, las fracciones y raíces se simplifican a una expresión lineal.
+Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se muestran como texto. En modo manuscrito, las fracciones se dibujan apiladas con su barra; las raíces y operaciones muy anidadas todavía pueden simplificarse.
 
 ## Mezcla de fuentes
 

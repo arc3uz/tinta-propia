@@ -1,6 +1,7 @@
 import { app } from "../core/state.js";
 import { createEl } from "../core/utils.js";
 import { showModal, toast } from "../core/modal.js";
+import { renderMathPreview } from "../math.js";
 
 /**
  * Paleta de inserción rápida de fórmulas.
@@ -175,10 +176,21 @@ export function openFormulaModal({ onInsert }) {
   type.id = "formula-type";
 
   const quick = createEl("div", { class: "formula-quick" });
+  const preview = createEl("div", {
+    class: "formula-preview",
+    "aria-live": "polite",
+    "aria-label": "Vista previa de la fórmula",
+  });
+  const previewHint = createEl("span", {
+    class: "formula-preview-hint",
+    text: "La vista previa aparecerá aquí.",
+  });
+  preview.append(previewHint);
   const editor = createEl("div", { class: "formula-editor" }, [
     createEl("label", { class: "select-label", for: "formula-type", text: "Tipo de fórmula" }),
     type,
     textarea,
+    preview,
     createEl("p", {
       class: "modal-hint",
       text:
@@ -204,6 +216,7 @@ export function openFormulaModal({ onInsert }) {
         insertAtCursor(textarea, item.code);
         recordUsage(item.code);
         renderQuick();
+        updatePreview();
       });
       chips.append(chip);
     }
@@ -224,6 +237,37 @@ export function openFormulaModal({ onInsert }) {
     for (const group of FORMULA_GROUPS) addGroup(group.name, group.items);
   };
   renderQuick();
+
+  let previewTimer = 0;
+  let previewSeq = 0;
+  function updatePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(async () => {
+      const code = textarea.value.trim();
+      const seq = ++previewSeq;
+      preview.innerHTML = "";
+      if (!code) {
+        preview.append(previewHint);
+        return;
+      }
+      try {
+        const svg = await renderMathPreview(code, { display: true });
+        if (seq !== previewSeq) return;
+        preview.append(svg);
+      } catch (error) {
+        if (seq !== previewSeq) return;
+        preview.append(
+          createEl("span", {
+            class: "formula-preview-error",
+            text: "Revisa la sintaxis LaTeX.",
+          })
+        );
+      }
+    }, 180);
+  }
+  textarea.addEventListener("input", updatePreview);
+  type.addEventListener("change", updatePreview);
+  updatePreview();
 
   const body = createEl("div", { class: "formula-layout" }, [quick, editor]);
   showModal({

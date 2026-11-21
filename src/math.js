@@ -255,37 +255,164 @@ async function renderTypeset(tex, display, settings) {
   };
 }
 
+/**
+ * Renderiza una fórmula con MathJax para la vista previa del editor.
+ * Devuelve el SVG sin depender del canvas del manuscrito.
+ */
+export async function renderMathPreview(tex, { display = true } = {}) {
+  await waitForMathJax();
+  const container = window.MathJax.tex2svg(tex, { display });
+  const svg = container.querySelector("svg");
+  if (!svg) throw new Error("MathJax no devolvió una vista previa.");
+  svg.removeAttribute("width");
+  svg.removeAttribute("height");
+  svg.style.maxWidth = "100%";
+  svg.style.height = "auto";
+  svg.style.display = "block";
+  return svg;
+}
+
 async function renderHandwritten(tex, settings) {
   const text = texToUnicode(tex);
   if (!text) throw new Error("La fórmula quedó vacía.");
 
   const fontPx = 80;
+  const fracPx = Math.round(fontPx * 0.78);
   const family = settings.font || "MiLetra";
   try {
     await document.fonts.load(`400 ${fontPx}px "${family}"`);
+    await document.fonts.load(`400 ${fracPx}px "${family}"`);
   } catch {
     /* fallback a la cursiva del sistema */
   }
 
   const probe = document.createElement("canvas");
   const pctx = probe.getContext("2d");
-  pctx.font = `400 ${fontPx}px "${family}", cursive`;
-  const metrics = pctx.measureText(text);
+  const baseFont = `400 ${fontPx}px "${family}", cursive`;
+  const fracFont = `400 ${fracPx}px "${family}", cursive`;
+  pctx.font = baseFont;
+
+  const measure = (value, size, font) => {
+    pctx.font = font;
+    const metrics = pctx.measureText(value);
+    const ascent = Math.ceil(metrics.actualBoundingBoxAscent || size * 0.8);
+    const descent = Math.ceil(metrics.actualBoundingBoxDescent || size * 0.25);
+    return {
+      width: Math.max(1, metrics.width),
+      ascent,
+      descent,
+      height: ascent + descent,
+    };
+  };
+
+  // Separa los \frac de nivel superior para dibujarlos como fracciones
+  // apiladas, con numerador, barra y denominador.
+  const segments = [];
+  let pending = "";
+  let index = 0;
+  while (index < tex.length) {
+    const match = tex.slice(index).match(/^\\(dfrac|tfrac|frac)/);
+    if (match) {
+      let cursor = index + match[0].length;
+      while (tex[cursor] === " ") cursor++;
+      if (tex[cursor] === "{") {
+        const numerator = parseGroup(tex, cursor);
+        cursor = numerator.next;
+        while (tex[cursor] === " ") cursor++;
+        if (tex[cursor] === "{") {
+          const denominator = parseGroup(tex, cursor);
+          if (pending.trim()) segments.push({ type: "text", value: pending });
+          pending = "";
+          segments.push({
+            type: "fraction",
+            numerator: numerator.value,
+            denominator: denominator.value,
+          });
+          index = denominator.next;
+          continue;
+        }
+      }
+    }
+    pending += tex[index];
+    index++;
+  }
+  if (pending.trim()) segments.push({ type: "text", value: pending });
+
+  const items = [];
   const padding = 14;
-  const ascent = Math.ceil(metrics.actualBoundingBoxAscent || fontPx * 0.8);
-  const descent = Math.ceil(metrics.actualBoundingBoxDescent || fontPx * 0.25);
-  const width = Math.ceil(metrics.width) + padding * 2;
-  const height = ascent + descent + padding * 2;
+  for (const segment of segments) {
+    if (segment.type === "text") {
+      const value = texToUnicode(segment.value);
+      if (!value) continue;
+      const metrics = measure(value, fontPx, baseFont);
+      items.push({
+        ...metrics,
+        draw(ctx, x, baseline) {
+          ctx.font = baseFont;
+          ctx.fillText(value, x, baseline);
+        },
+      });
+      continue;
+    }
+
+    const numeratorText = texToUnicode(segment.numerator);
+    const denominatorText = texToUnicode(segment.denominator);
+    const numerator = measure(numeratorText, fracPx, fracFont);
+    const denominator = measure(denominatorText, fracPx, fracFont);
+    const gap = Math.max(2, Math.round(fontPx * 0.05));
+    const axis = Math.round(fontPx * 0.3);
+    const barThickness = Math.max(2, Math.round(fontPx * 0.04));
+    const barPadding = Math.max(2, Math.round(fontPx * 0.04));
+    const width = Math.max(numerator.width, denominator.width) + barPadding * 2;
+    const ascent = axis + gap + numerator.height;
+    const descent = gap + denominator.height - axis;
+    items.push({
+      width,
+      ascent,
+      descent,
+      draw(ctx, x, baseline) {
+        const barY = baseline - axis;
+        ctx.font = fracFont;
+        ctx.fillRect(
+          x + (width - Math.max(numerator.width, denominator.width)) / 2,
+          barY - barThickness / 2,
+          Math.max(numerator.width, denominator.width),
+          barThickness
+        );
+        ctx.fillText(
+          numeratorText,
+          x + (width - numerator.width) / 2,
+          barY - gap - numerator.descent
+        );
+        ctx.fillText(
+          denominatorText,
+          x + (width - denominator.width) / 2,
+          barY + gap + denominator.ascent
+        );
+      },
+    });
+  }
+
+  if (!items.length) throw new Error("La fórmula quedó vacía.");
+
+  const contentWidth = items.reduce((sum, item) => sum + item.width, 0);
+  const ascent = Math.max(...items.map((item) => item.ascent), Math.ceil(fontPx * 0.8));
+  const descent = Math.max(...items.map((item) => item.descent), Math.ceil(fontPx * 0.25));
+  const width = Math.ceil(contentWidth + padding * 2);
+  const height = Math.ceil(ascent + descent + padding * 2);
   const baseline = padding + ascent;
 
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, width);
   canvas.height = Math.max(1, height);
   const ctx = canvas.getContext("2d");
-  ctx.font = `400 ${fontPx}px "${family}", cursive`;
   ctx.fillStyle = colorFor(settings);
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(text, padding, baseline);
+  let x = padding;
+  for (const item of items) {
+    item.draw(ctx, x, baseline);
+    x += item.width;
+  }
 
   const img = await loadImage(canvas.toDataURL("image/png"));
   return {
