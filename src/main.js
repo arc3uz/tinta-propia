@@ -357,7 +357,7 @@ function showProgress(title, subtitle) {
 
 function fallbackBootstrap() {
   return {
-    version: "0.2.0",
+    version: "0.2.1",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -1956,7 +1956,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.2.0"],
+    ["Versión", app.boot?.version || "0.2.1"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],

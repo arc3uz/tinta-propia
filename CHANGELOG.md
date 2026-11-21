@@ -6,6 +6,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-20
+
+### Added
+
+- Margen **Ninguno (0,1 cm)** para aprovechar al máximo la hoja.
+
+### Changed
+
+- Las guías de columna son más visibles en pantalla, impresión y PDF.
+- La casilla de guías ahora se llama **Mostrar guías de columna**.
+
+### Removed
+
+- El recordatorio fijo **“100 % local · sin internet”** del panel lateral.
+
 ## [0.2.0] - 2026-11-20
 
 ### Added

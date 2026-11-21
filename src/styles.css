@@ -626,13 +626,6 @@ kbd {
   width: 14px;
   height: 14px;
 }
-.sidebar-hint {
-  text-align: center;
-  font-size: 9.5px;
-  color: #a3adba;
-  margin-top: 7px;
-}
-
 /* ───────────────────────── Editor ───────────────────────── */
 
 .editor-pane {

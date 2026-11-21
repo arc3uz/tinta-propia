@@ -134,7 +134,6 @@
               <svg><use href="#i-settings"></use></svg>
               <span>Ajustes del manuscrito</span>
             </button>
-            <div class="sidebar-hint">100 % local · sin internet</div>
           </div>
         </aside>
 
@@ -228,7 +227,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span id="sbVersion">v0.2.0</span>
+          <span id="sbVersion">v0.2.1</span>
         </div>
       </footer>
     </div>
@@ -279,13 +278,14 @@
           </select>
           <label class="checkline">
             <input id="columnGuides" type="checkbox" checked />
-            <span><b>Guías de columna</b><small>Líneas punteadas entre las tres columnas.</small></span>
+            <span><b>Mostrar guías de columna</b><small>Líneas punteadas entre las tres columnas.</small></span>
           </label>
           <p class="setting-hint small">Con 3 columnas la hoja se usa horizontal y el texto fluye de la columna 1 a la 3. No es un folleto plegado: es la hoja completa dividida en columnas.</p>
           <div class="two-col">
             <div>
               <label class="select-label" for="margins">Márgenes</label>
               <select id="margins">
+                <option value="ninguno">Ninguno (0,1 cm)</option>
                 <option value="minimos">Muy pequeños</option>
                 <option value="pequenos" selected>Pequeños</option>
                 <option value="normales">Normales</option>

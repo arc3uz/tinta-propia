@@ -18,6 +18,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Editor Markdown con resaltado de sintaxis, números de línea, plegado, búsqueda e historial.
 - Vista previa real del manuscrito sobre canvas, con la fuente `MiLetra IIC2531`.
 - Tamaños de hoja A4, Carta, Legal, A5 y Oficio.
+- Márgenes: **Ninguno (0,1 cm)**, muy pequeños, pequeños, normales y amplios.
 - Espaciado entre palabras y letras ajustable; tinta, márgenes, realismo, temblor, presión, inclinación y semilla.
 - Títulos rojos y cuerpo azul sobre papel blanco liso, sin cuadrícula ni margen rojo.
 - Diagramas Mermaid renderizados automáticamente en segundo plano.

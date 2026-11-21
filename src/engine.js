@@ -13,6 +13,7 @@ export const PAGE_SIZES = {
 };
 
 export const MARGIN_PRESETS = {
+  ninguno: { left: 4, right: 4, top: 4, bottom: 4, label: "Ninguno (0,1 cm)" },
   minimos: { left: 36, right: 32, top: 34, bottom: 32, label: "Muy pequeños" },
   pequenos: { left: 62, right: 54, top: 58, bottom: 56, label: "Pequeños" },
   normales: { left: 100, right: 78, top: 92, bottom: 86, label: "Normales" },
@@ -386,14 +387,14 @@ function drawPaper(ctx) {
 
   if (state.columns > 1 && state.settings.columnGuides !== false) {
     ctx.save();
-    ctx.strokeStyle = "rgba(80,100,130,.16)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 7]);
+    ctx.strokeStyle = "rgba(58,80,110,.60)";
+    ctx.lineWidth = Math.max(2.4, Math.round(3 * (W / 1754) * 10) / 10);
+    ctx.setLineDash([9, 8]);
     for (let col = 1; col < state.columns; col++) {
       const x = M.left + col * (state.columnWidth + state.columnGap) - state.columnGap / 2;
       ctx.beginPath();
-      ctx.moveTo(x, M.top - 12);
-      ctx.lineTo(x, H - M.bottom + 12);
+      ctx.moveTo(x, Math.max(0, M.top - 12));
+      ctx.lineTo(x, Math.min(H, H - M.bottom + 12));
       ctx.stroke();
     }
     ctx.restore();
