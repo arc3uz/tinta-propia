@@ -446,6 +446,9 @@ docs/
   ARCHITECTURE.md
   branding/
     logo.png
+  Plantilla de caracteres - Tinta Propia.html
+  Plantilla de caracteres - Tinta Propia.pdf
+  LEEME - Plantilla de caracteres.txt
   THIRD_PARTY_NOTICES.md
 
 .github/
@@ -485,6 +488,7 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 - [Código de conducta](.github/CODE_OF_CONDUCT.md)
 - [Política de seguridad](.github/SECURITY.md)
 - [Arquitectura del frontend](docs/ARCHITECTURE.md)
+- [Plantilla de caracteres para fuentes](<docs/Plantilla de caracteres - Tinta Propia.pdf>)
 - [Historial de cambios](CHANGELOG.md)
 - [Avisos de terceros y licencias de fuentes](docs/THIRD_PARTY_NOTICES.md)
 - [Licencia MIT](LICENSE)
