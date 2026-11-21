@@ -114,7 +114,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.7.1",
+    version: "0.8.0",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -1321,7 +1321,7 @@ async function saveProjectAs({ defaultDir = null } = {}) {
     return;
   }
   try {
-    const baseDir = defaultDir || app.boot?.documentsDir || app.boot?.projectsDir;
+    const baseDir = defaultDir || app.boot?.projectsDir || app.boot?.documentsDir;
     const separator = baseDir?.includes("\\") ? "\\" : "/";
     const defaultPath = baseDir
       ? `${baseDir.replace(/[\\/]$/, "")}${separator}${slugify(app.title)}.papernotes`
@@ -1408,7 +1408,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.7.1"],
+    ["Versión", app.boot?.version || "0.8.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -1469,6 +1469,7 @@ function showShortcuts() {
 
 function openSettings() {
   $("menuPopover").hidden = true;
+  $("brandMenuBtn").setAttribute("aria-expanded", "false");
   $("settingsDrawer").classList.add("open");
   $("drawerOverlay").hidden = false;
   setTimeout(() => $("drawerClose").focus(), 120);
@@ -1834,16 +1835,18 @@ function bindEditorEvents() {
   $("newBtn").addEventListener("click", newProject);
   $("openBtn").addEventListener("click", openProjectFlow);
   $("saveBtn").addEventListener("click", saveProject);
-  $("menuBtn").addEventListener("click", (event) => {
+  $("brandMenuBtn").addEventListener("click", (event) => {
     event.stopPropagation();
     const menu = $("menuPopover");
     menu.hidden = !menu.hidden;
+    $("brandMenuBtn").setAttribute("aria-expanded", String(!menu.hidden));
   });
 
   $("menuPopover").addEventListener("click", async (event) => {
     const button = event.target.closest("[data-action]");
     if (!button) return;
     $("menuPopover").hidden = true;
+    $("brandMenuBtn").setAttribute("aria-expanded", "false");
     switch (button.dataset.action) {
       case "welcome":
         await openLibrary();
@@ -1902,8 +1905,9 @@ function bindEditorEvents() {
     }
   });
   document.addEventListener("click", (event) => {
-    if (!event.target.closest("#menuPopover") && !event.target.closest("#menuBtn")) {
+    if (!event.target.closest("#menuPopover") && !event.target.closest("#brandMenuBtn")) {
       $("menuPopover").hidden = true;
+      $("brandMenuBtn").setAttribute("aria-expanded", "false");
     }
   });
 
@@ -1952,6 +1956,7 @@ function bindGlobalKeys() {
       }
       if (!$("menuPopover").hidden) {
         $("menuPopover").hidden = true;
+        $("brandMenuBtn").setAttribute("aria-expanded", "false");
         event.preventDefault();
         return;
       }

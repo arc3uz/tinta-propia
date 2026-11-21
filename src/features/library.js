@@ -8,6 +8,7 @@ import {
   svgIcon,
 } from "../core/utils.js";
 import { confirmAction, promptText, showModal, toast } from "../core/modal.js";
+import { save as saveFileDialog } from "@tauri-apps/plugin-dialog";
 import { openFolder } from "../core/system.js";
 
 /**
@@ -330,6 +331,7 @@ function showProjectActions(project, folders, refresh, deps) {
   add("Renombrar", "pen", () => renameProject(project, refresh, deps));
   add("Duplicar", "file", () => duplicateProject(project, refresh));
   add("Mover a carpeta", "folder", () => moveProjectDialog(project, folders, refresh, deps));
+  add("Mover a otra ubicación…", "external", () => moveProjectAnywhere(project, refresh, deps));
   add("Abrir carpeta contenedora", "external", () => openFolder(folderPath(project.folder || "")));
   add("Eliminar", "trash", () => trashProject(project, refresh), true);
   return modal;
@@ -386,6 +388,10 @@ function createLibraryRow(project, closeLibrary, refresh, folders, deps) {
     showProjectActions(project, folders, refresh, deps)
   );
   row.append(open, actions);
+  row.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    showContextMenu(event, projectMenuItems(project, folders, refresh, deps));
+  });
   return row;
 }
 
@@ -408,14 +414,17 @@ const folderAction = (icon, title, handler) => {
   return button;
 };
 
-async function createFolder(refresh) {
-  const folder = await promptText({
-    title: "Nueva carpeta",
+async function createFolder(refresh, parent = "") {
+  if (!app.isTauri) return;
+  const name = await promptText({
+    title: parent ? "Nueva carpeta dentro" : "Nueva carpeta",
+    subtitle: parent || "Biblioteca",
     label: "Nombre de la carpeta",
-    placeholder: "Universidad/Cálculo",
+    placeholder: "Cálculo",
     confirmLabel: "Crear carpeta",
   });
-  if (!folder) return;
+  if (!name) return;
+  const folder = parent ? `${parent}/${name}` : name;
   try {
     await invoke("create_library_folder", { folder });
     toast("Carpeta creada.", { title: "Biblioteca" });
@@ -424,6 +433,198 @@ async function createFolder(refresh) {
     console.error(error);
     toast(`No se pudo crear la carpeta: ${error}`, { type: "error" });
   }
+}
+
+async function createProjectInFolder(folder, refresh) {
+  if (!app.isTauri) return;
+  const title = await promptText({
+    title: "Nuevo proyecto",
+    subtitle: folder || "Biblioteca",
+    label: "Nombre del proyecto",
+    value: "Nuevo proyecto",
+    confirmLabel: "Crear archivo",
+  });
+  if (!title) return;
+  try {
+    await invoke("create_project_in_folder", { folder, title });
+    toast("Proyecto creado en la carpeta.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo crear el proyecto: ${error}`, { type: "error" });
+  }
+}
+
+async function moveProjectAnywhere(project, refresh, deps) {
+  if (!app.isTauri) return;
+  const target = await saveFileDialog({
+    title: "Mover proyecto a otra ubicación",
+    defaultPath: project.path,
+    filters: [{ name: "Proyecto Tinta Propia", extensions: ["papernotes"] }],
+  });
+  if (!target || target === project.path) return;
+  try {
+    const newPath = await invoke("move_project_to_path", {
+      path: project.path,
+      target,
+    });
+    if (app.projectPath === project.path) {
+      app.projectPath = newPath;
+      deps.updateTitleUI?.();
+      deps.scheduleAutosave?.(100);
+    }
+    toast("Proyecto movido.", { title: "Biblioteca" });
+    await refresh();
+  } catch (error) {
+    console.error(error);
+    toast(`No se pudo mover el proyecto: ${error}`, { type: "error" });
+  }
+}
+
+let activeContextMenu = null;
+
+function closeContextMenu() {
+  if (!activeContextMenu) return;
+  activeContextMenu.remove();
+  activeContextMenu = null;
+}
+
+/** Menú contextual de la biblioteca. */
+function showContextMenu(event, items) {
+  closeContextMenu();
+  const menu = createEl("div", { class: "context-menu", role: "menu" });
+  for (const item of items) {
+    if (!item) continue;
+    const button = createEl(
+      "button",
+      {
+        class: `context-item${item.danger ? " danger" : ""}`,
+        type: "button",
+        role: "menuitem",
+      },
+      [svgIcon(item.icon), createEl("span", { text: item.label })]
+    );
+    button.addEventListener("click", () => {
+      closeContextMenu();
+      item.action();
+    });
+    menu.append(button);
+  }
+  document.body.append(menu);
+  const rect = menu.getBoundingClientRect();
+  const left = Math.min(event.clientX, window.innerWidth - rect.width - 8);
+  const top = Math.min(event.clientY, window.innerHeight - rect.height - 8);
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
+  activeContextMenu = menu;
+
+  const onPointerDown = (pointerEvent) => {
+    if (!menu.contains(pointerEvent.target)) closeContextMenu();
+  };
+  const onKeyDown = (keyEvent) => {
+    if (keyEvent.key === "Escape") closeContextMenu();
+  };
+  setTimeout(() => {
+    if (!activeContextMenu) return;
+    document.addEventListener("pointerdown", onPointerDown, true);
+  }, 0);
+  document.addEventListener("keydown", onKeyDown);
+  const observer = new MutationObserver(() => {
+    if (!document.body.contains(menu)) {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+      observer.disconnect();
+      if (activeContextMenu === menu) activeContextMenu = null;
+    }
+  });
+  observer.observe(document.body, { childList: true });
+}
+
+function folderMenuItems(folder, refresh, deps) {
+  return [
+    {
+      label: "Nuevo proyecto aquí",
+      icon: "file",
+      action: () => createProjectInFolder(folder.path, refresh),
+    },
+    {
+      label: "Nueva carpeta dentro",
+      icon: "folder",
+      action: () => createFolder(refresh, folder.path),
+    },
+    {
+      label: "Renombrar carpeta",
+      icon: "pen",
+      action: () => renameFolder(folder, refresh, deps),
+    },
+    countLibraryProjects(folder) === 0
+      ? {
+          label: "Eliminar carpeta",
+          icon: "trash",
+          danger: true,
+          action: () => deleteFolder(folder, refresh),
+        }
+      : null,
+  ];
+}
+
+function rootMenuItems(refresh) {
+  return [
+    {
+      label: "Nuevo proyecto en la biblioteca",
+      icon: "file",
+      action: () => createProjectInFolder("", refresh),
+    },
+    {
+      label: "Nueva carpeta",
+      icon: "folder",
+      action: () => createFolder(refresh),
+    },
+  ];
+}
+
+function projectMenuItems(project, folders, refresh, deps) {
+  return [
+    {
+      label: "Abrir",
+      icon: "file",
+      action: () => {
+        closeHomeView();
+        deps.openProjectPath(project.path);
+      },
+    },
+    {
+      label: "Renombrar",
+      icon: "pen",
+      action: () => renameProject(project, refresh, deps),
+    },
+    {
+      label: "Duplicar",
+      icon: "file",
+      action: () => duplicateProject(project, refresh),
+    },
+    {
+      label: "Mover a otra ubicación…",
+      icon: "external",
+      action: () => moveProjectAnywhere(project, refresh, deps),
+    },
+    {
+      label: "Mover a carpeta",
+      icon: "folder",
+      action: () => moveProjectDialog(project, folders, refresh, deps),
+    },
+    {
+      label: "Abrir carpeta contenedora",
+      icon: "external",
+      action: () => openFolder(folderPath(project.folder || "")),
+    },
+    {
+      label: "Eliminar",
+      icon: "trash",
+      danger: true,
+      action: () => trashProject(project, refresh),
+    },
+  ];
 }
 
 async function renameFolder(folder, refresh, deps) {
@@ -498,6 +699,11 @@ function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps
       createEl("span", { class: "library-folder-count", text: String(count) }),
       folderActions,
     ]);
+    summary.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      showContextMenu(event, folderMenuItems(folder, refresh, deps));
+    });
     const children = createEl("div", { class: "library-children" });
     renderLibraryNode(folder, children, closeLibrary, refresh, folders, deps);
     details.append(summary, children);
@@ -516,6 +722,11 @@ function renderLibrary(container, snapshot, closeLibrary, refresh, deps) {
   const tags = uniqueTags(projects);
   const countLabel = createEl("small", { class: "library-count" });
   const tree = createEl("div", { class: "library-tree" });
+  tree.addEventListener("contextmenu", (event) => {
+    if (event.target.closest(".library-project, summary")) return;
+    event.preventDefault();
+    showContextMenu(event, rootMenuItems(refresh));
+  });
   const tagFilters = createEl("div", { class: "library-tag-filters" });
 
   const head = createEl("div", { class: "library-head" }, [

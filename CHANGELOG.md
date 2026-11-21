@@ -6,6 +6,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-21
+
+### Added
+
+- Menú contextual en la biblioteca al hacer clic derecho sobre una carpeta, un proyecto o el fondo.
+- Crear un proyecto `.papernotes` directamente dentro de cualquier carpeta.
+- Mover un proyecto a cualquier ubicación del equipo mediante el diálogo nativo.
+- El logotipo de la barra superior abre el menú del proyecto.
+
+### Changed
+
+- **Guardar como** propone por defecto la carpeta de la biblioteca de la aplicación.
+- El botón **Menú** independiente se eliminó; ahora el acceso es el logotipo.
+- La biblioteca permite crear archivos dentro de la carpeta seleccionada sin salir de Inicio.
+
 ## [0.7.1] - 2026-11-21
 
 ### Fixed

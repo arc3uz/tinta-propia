@@ -416,6 +416,126 @@ pub fn duplicate_project(app: &AppHandle, path: &str) -> Result<String, String> 
     Ok(target_string)
 }
 
+fn safe_project_stem(title: &str) -> String {
+    let mut out = String::new();
+    let mut last_dash = false;
+    for ch in title.chars() {
+        if ch.is_alphanumeric() {
+            for lower in ch.to_lowercase() {
+                out.push(lower);
+            }
+            last_dash = false;
+        } else if (ch.is_whitespace() || ch == '-' || ch == '_') && !last_dash && !out.is_empty() {
+            out.push('-');
+            last_dash = true;
+        }
+        if out.chars().count() >= 48 {
+            break;
+        }
+    }
+    let trimmed = out.trim_matches('-').to_string();
+    if trimmed.is_empty() {
+        "proyecto".to_string()
+    } else {
+        trimmed
+    }
+}
+
+fn now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+pub fn create_project_in_folder(
+    app: &AppHandle,
+    folder: &str,
+    title: &str,
+) -> Result<String, String> {
+    let data_dir = ensure_dirs(app)?;
+    let relative = safe_relative_folder(folder)?;
+    let target_dir = data_dir.join("projects").join(relative);
+    fs::create_dir_all(&target_dir).map_err(|e| format!("No se pudo crear la carpeta: {e}"))?;
+    let title = title.trim();
+    if title.is_empty() {
+        return Err("El nombre del proyecto no puede quedar vacío.".into());
+    }
+    let stem = safe_project_stem(title);
+    let mut target = target_dir.join(format!("{stem}.papernotes"));
+    let mut counter = 2;
+    while target.exists() {
+        target = target_dir.join(format!("{stem}-{counter}.papernotes"));
+        counter += 1;
+    }
+    let target_string = target.to_string_lossy().to_string();
+    let value = serde_json::json!({
+        "version": 1,
+        "title": title,
+        "path": target_string,
+        "document": "",
+        "settings": {},
+        "tags": [],
+        "assets": {},
+        "imageSeq": 0,
+        "updatedAt": now_ms(),
+    });
+    write_json(&target, &value)?;
+    touch_recent(app, &target_string, title)?;
+    Ok(target_string)
+}
+
+pub fn move_project_to_path(
+    app: &AppHandle,
+    path: &str,
+    target_path: &str,
+) -> Result<String, String> {
+    let source = PathBuf::from(path);
+    let target = PathBuf::from(target_path);
+    if source.extension().and_then(|ext| ext.to_str()) != Some("papernotes")
+        || target.extension().and_then(|ext| ext.to_str()) != Some("papernotes")
+    {
+        return Err("El archivo debe ser un proyecto .papernotes.".into());
+    }
+    if !source.is_file() {
+        return Err("El proyecto ya no existe.".into());
+    }
+    if source == target {
+        return Ok(target.to_string_lossy().to_string());
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("No se pudo crear la carpeta destino: {e}"))?;
+    }
+    if target.exists() {
+        fs::remove_file(&target)
+            .map_err(|e| format!("No se pudo reemplazar el archivo destino: {e}"))?;
+    }
+    if let Err(rename_error) = fs::rename(&source, &target) {
+        fs::copy(&source, &target).map_err(|e| format!("No se pudo mover el proyecto: {e}"))?;
+        fs::remove_file(&source).map_err(|e| {
+            format!(
+                "El proyecto se copió, pero no se pudo quitar el original: {e} ({rename_error})"
+            )
+        })?;
+    }
+    let target_string = target.to_string_lossy().to_string();
+    let mut recent = recent_projects(app);
+    let mut changed = false;
+    for item in &mut recent {
+        if item.path == path {
+            item.path = target_string.clone();
+            changed = true;
+        }
+    }
+    if changed {
+        let value = serde_json::to_value(&recent)
+            .map_err(|e| format!("No se pudo actualizar la lista de recientes: {e}"))?;
+        write_json(&ensure_dirs(app)?.join("recent.json"), &value)?;
+    }
+    Ok(target_string)
+}
+
 pub fn trash_project(app: &AppHandle, path: &str) -> Result<String, String> {
     let source = PathBuf::from(path);
     if source.extension().and_then(|ext| ext.to_str()) != Some("papernotes") {

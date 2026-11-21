@@ -189,8 +189,17 @@ kbd {
   display: flex;
   align-items: center;
   gap: 9px;
-  padding-right: 4px;
+  padding: 2px 6px 2px 2px;
   flex: 0 0 auto;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.brand:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 .brand-mark {
   width: 33px;
@@ -353,7 +362,7 @@ kbd {
 .menu-popover {
   position: absolute;
   top: calc(var(--topbar-h) - 6px);
-  left: 12px;
+  left: 56px;
   width: 284px;
   background: #fff;
   color: var(--ink);
@@ -2258,6 +2267,47 @@ details.advanced[open] summary::after {
 .library-folder-actions .icon-btn {
   width: 22px;
   height: 22px;
+}
+.context-menu {
+  position: fixed;
+  z-index: 220;
+  min-width: 210px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow-lg);
+}
+.context-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  font-size: 11.5px;
+}
+.context-item:hover {
+  background: #f1f5fa;
+  color: var(--navy);
+}
+.context-item svg {
+  width: 14px;
+  height: 14px;
+  color: #8d99a9;
+}
+.context-item.danger {
+  color: var(--red);
+}
+.context-item.danger svg {
+  color: var(--red);
+}
+.context-item.danger:hover {
+  background: var(--red-soft);
 }
 .project-actions {
   display: flex;

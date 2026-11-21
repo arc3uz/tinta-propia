@@ -142,6 +142,20 @@ fn trash_project(app: AppHandle, path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn create_project_in_folder(
+    app: AppHandle,
+    folder: String,
+    title: String,
+) -> Result<String, String> {
+    storage::create_project_in_folder(&app, &folder, &title)
+}
+
+#[tauri::command]
+fn move_project_to_path(app: AppHandle, path: String, target: String) -> Result<String, String> {
+    storage::move_project_to_path(&app, &path, &target)
+}
+
+#[tauri::command]
 fn set_project_tags(path: String, tags: Vec<String>) -> Result<(), String> {
     storage::set_project_tags(&path, tags)
 }
@@ -244,6 +258,8 @@ pub fn run() {
             set_project_title,
             duplicate_project,
             trash_project,
+            create_project_in_folder,
+            move_project_to_path,
             move_project_to_folder,
             touch_recent,
             remove_recent,

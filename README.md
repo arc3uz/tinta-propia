@@ -236,9 +236,11 @@ El repositorio incluye dos workflows:
 6. Guarda con `Ctrl+S` como proyecto `.papernotes`.
 7. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
 
-Puedes volver a la pantalla de inicio con **Menú → Inicio**. Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Puedes buscar por título o etiqueta, filtrar por etiqueta, ordenar por nombre o fecha, crear carpetas y renombrar, duplicar o eliminar proyectos. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
+Puedes volver a la pantalla de inicio con **Menú → Inicio** (el menú se abre al pulsar el logotipo). Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Puedes buscar por título o etiqueta, filtrar por etiqueta, ordenar por nombre o fecha, crear carpetas y renombrar, duplicar o eliminar proyectos. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
 
-**Guardar como** usa el diálogo nativo del sistema y propone la carpeta de Documentos. Si guardas un proyecto fuera de la biblioteca, aparecerá en **Recientes fuera de la biblioteca** con un botón para moverlo a ella; el botón de la biblioteca vacía guarda directamente en la carpeta de proyectos. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
+Con clic derecho sobre una carpeta aparece **Nuevo proyecto aquí**; también puedes crear carpetas y gestionar proyectos desde el menú contextual. Para mover un proyecto fuera de la biblioteca usa **Mover a otra ubicación…**.
+
+**Guardar como** usa el diálogo nativo del sistema y propone la carpeta de la biblioteca de la aplicación. Desde **Inicio** puedes mover un proyecto a cualquier otra ubicación del equipo con **Mover a otra ubicación…**. Los proyectos fuera de la biblioteca aparecen en **Recientes fuera de la biblioteca**. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
 
 Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Menú → Cargar plantilla de ejemplo**. Para empezar completamente en blanco, usa **Menú → Nuevo proyecto**.
 

@@ -47,10 +47,6 @@
     <div class="app-shell" id="appShell">
       <header class="topbar">
         <div class="tb-left">
-          <button class="tb-btn" id="menuBtn" title="Menú del proyecto">
-            <svg><use href="#i-menu"></use></svg>
-            <span>Menú</span>
-          </button>
           <div class="menu-popover" id="menuPopover" hidden>
             <button data-action="welcome"><span>Inicio</span></button>
             <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
@@ -77,13 +73,13 @@
           <button class="tb-icon" id="sidebarToggle" title="Mostrar u ocultar panel (Ctrl+\\)" aria-label="Alternar panel">
             <svg><use href="#i-panel"></use></svg>
           </button>
-          <div class="brand">
-            <div class="brand-mark"><img src="/src/assets/brand/icon.png" alt="" /></div>
-            <div class="brand-copy">
+          <button class="brand" id="brandMenuBtn" type="button" title="Menú del proyecto" aria-haspopup="menu" aria-expanded="false">
+            <span class="brand-mark"><img src="/src/assets/brand/icon.png" alt="" /></span>
+            <span class="brand-copy">
               <span class="brand-name">Tinta</span>
               <span class="brand-sub">Propia</span>
-            </div>
-          </div>
+            </span>
+          </button>
           <div class="project-title-wrap">
             <input id="projectTitle" class="project-title" value="Sin título" spellcheck="false" aria-label="Nombre del proyecto" />
             <span class="save-state" id="saveState"><i></i><span>Guardado</span></span>
@@ -248,7 +244,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span id="sbVersion">v0.7.1</span>
+          <span id="sbVersion">v0.8.0</span>
         </div>
       </footer>
     </div>
