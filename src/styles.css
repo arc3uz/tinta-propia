@@ -2084,6 +2084,9 @@ details.advanced[open] summary::after {
   line-height: 1.5;
   color: var(--muted-2);
 }
+.library-empty .btn {
+  margin-top: 10px;
+}
 .library-folder {
   margin: 0;
 }

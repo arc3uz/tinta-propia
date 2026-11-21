@@ -2010,6 +2010,19 @@ function renderLibrary(container, projects, closeWelcome, refresh) {
             ? "Los proyectos guardados se ordenan aquí por carpeta. También puedes moverlos y etiquetarlos."
             : "En el navegador solo se conserva la sesión actual.",
         }),
+        app.isTauri
+          ? createEl(
+              "button",
+              {
+                class: "btn primary small",
+                onclick: async () => {
+                  await saveProjectAs();
+                  await refresh();
+                },
+              },
+              "Guardar este documento en la biblioteca"
+            )
+          : null,
       ])
     );
   } else {
