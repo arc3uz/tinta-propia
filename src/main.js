@@ -27,6 +27,7 @@ import {
   DEFAULT_SETTINGS,
   PRESETS,
   loadImage,
+  parseImageTokenOptions,
 } from "./engine.js";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
@@ -114,7 +115,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.8.0",
+    version: "0.9.0",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -964,6 +965,149 @@ async function insertImages(files) {
   }
 }
 
+function findCurrentImageBlock() {
+  if (!app.editor) return null;
+  const cursor = app.editor.getCursor();
+  const lines = app.editor.getValue().split(/\r?\n/);
+  let index = cursor.line - 1;
+  let line = lines[index] || "";
+  if (!line.trim()) {
+    let probe = index - 1;
+    while (probe >= 0 && !lines[probe].trim()) probe--;
+    if (probe >= 0 && /^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/.test(lines[probe].trim())) {
+      index = probe;
+      line = lines[probe];
+    }
+  }
+  const match = line.match(/^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/);
+  if (!match) return null;
+  const id = parseInt(match[1], 10);
+  const options = parseImageTokenOptions(match[2] || "");
+  let endLine = index + 1;
+  let sideText = "";
+  let hasBlock = false;
+  let probe = index + 1;
+  const content = [];
+  while (probe < lines.length && !/^\[\[\/IMG\]\]$/i.test(lines[probe].trim())) {
+    content.push(lines[probe]);
+    probe++;
+  }
+  if (probe < lines.length) {
+    hasBlock = true;
+    sideText = content.join("\n");
+    endLine = probe + 1;
+  }
+  return { id, options, lineNumber: index + 1, endLine, sideText, hasBlock };
+}
+
+function openImageOptionsModal() {
+  const block = findCurrentImageBlock();
+  if (!block) {
+    toast("Coloca el cursor en una línea [[IMG:n]] para ajustar la imagen.", {
+      type: "warn",
+      title: "Sin imagen seleccionada",
+    });
+    return;
+  }
+  const entry = app.images.get(block.id);
+  const preview = createEl("div", { class: "image-options-preview" });
+  if (entry?.img?.src) {
+    preview.append(
+      createEl("img", {
+        src: entry.img.src,
+        alt: "Vista previa de la imagen",
+      })
+    );
+  }
+  const width = createEl("input", {
+    type: "range",
+    min: "20",
+    max: "100",
+    step: "1",
+    value: String(Math.round((block.options.width ?? 1) * 100)),
+  });
+  const widthOutput = createEl("output", {
+    text: `${Math.round((block.options.width ?? 1) * 100)} %`,
+  });
+  const side = createEl("select", {}, [
+    createEl("option", { value: "full", text: "Ancho completo" }),
+    createEl("option", { value: "left", text: "Imagen a la izquierda" }),
+    createEl("option", { value: "right", text: "Imagen a la derecha" }),
+  ]);
+  side.value = block.options.side || "full";
+  const caption = createEl("input", { type: "text", placeholder: "Pie de imagen (opcional)" });
+  caption.value = block.options.caption || "";
+  const sideText = createEl("textarea", {
+    class: "image-side-text",
+    placeholder: "Texto que irá al otro lado de la imagen…",
+  });
+  sideText.value = block.sideText || "";
+  const sideBox = createEl("div", { class: "image-side-box" }, [
+    createEl("label", { class: "select-label", for: "image-side-text", text: "Texto al lado" }),
+    sideText,
+    createEl("p", {
+      class: "setting-hint small",
+      text: "Solo se usa cuando la imagen va a la izquierda o a la derecha.",
+    }),
+  ]);
+  sideText.id = "image-side-text";
+  const toggleSide = () => {
+    sideBox.hidden = side.value === "full";
+  };
+  side.addEventListener("change", toggleSide);
+  width.addEventListener("input", () => {
+    widthOutput.textContent = `${width.value} %`;
+  });
+  const body = createEl("div", { class: "image-options" }, [
+    preview,
+    createEl("div", { class: "control-row" }, [
+      createEl("label", { for: "image-width", text: "Ancho" }),
+      widthOutput,
+    ]),
+    width,
+    createEl("label", { class: "select-label", for: "image-side", text: "Posición" }),
+    side,
+    createEl("label", { class: "select-label", for: "image-caption", text: "Pie de imagen" }),
+    caption,
+    sideBox,
+  ]);
+  width.id = "image-width";
+  side.id = "image-side";
+  caption.id = "image-caption";
+  toggleSide();
+  const modal = showModal({
+    title: "Ajustar imagen",
+    subtitle: "Redimensiona o coloca texto al otro lado.",
+    body,
+    actions: [
+      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
+      {
+        label: "Aplicar",
+        kind: "primary",
+        onClick: (close) => {
+          const ratio = clamp(parseFloat(width.value) / 100, 0.2, 1);
+          const imageSide = side.value;
+          const cleanCaption = caption.value.trim().replace(/\|/g, "·");
+          const parts = [`width=${Math.round(ratio * 100)}%`];
+          if (imageSide !== "full") parts.push(`side=${imageSide}`);
+          if (cleanCaption) parts.push(cleanCaption);
+          const token = `[[IMG:${block.id}|${parts.join("|")}]]`;
+          const content =
+            imageSide === "full"
+              ? token
+              : `${token}\n${sideText.value.trim()}\n[[/IMG]]`;
+          app.editor.replaceLines(block.lineNumber, block.endLine, content);
+          close();
+          markDirty();
+          scheduleCompile(180);
+          scheduleAutosave(1000);
+        },
+      },
+    ],
+  });
+  return modal;
+}
+
 function openMermaidModal() {
   const textarea = createEl("textarea", {
     class: "mermaid-input",
@@ -1408,7 +1552,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.8.0"],
+    ["Versión", app.boot?.version || "0.9.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -1601,7 +1745,8 @@ function handleFormat(action) {
       );
       break;
     case "image":
-      $("hiddenImageInput").click();
+      if (findCurrentImageBlock()) openImageOptionsModal();
+      else $("hiddenImageInput").click();
       return;
     case "formula":
       openFormulaPalette();
@@ -1874,6 +2019,9 @@ function bindEditorEvents() {
         break;
       case "insert-image":
         $("hiddenImageInput").click();
+        break;
+      case "image-options":
+        openImageOptionsModal();
         break;
       case "insert-formula":
         openFormulaPalette();

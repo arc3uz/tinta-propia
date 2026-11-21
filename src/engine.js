@@ -766,7 +766,51 @@ function loadImage(src) {
   });
 }
 
-function drawImageEntry(page, entry, caption) {
+/**
+ * Interpreta las opciones de un token `[[IMG:id|width=50%|side=right|Caption]]`.
+ * El formato antiguo `[[IMG:id|Caption]]` sigue funcionando.
+ */
+export function parseImageTokenOptions(raw = "") {
+  let width = null;
+  let side = "full";
+  let caption = "";
+  const parts = String(raw).split("|");
+  for (const part of parts) {
+    const value = part.trim();
+    if (!value) continue;
+    if (/^width\s*=/i.test(value)) {
+      const parsed = value.replace(/^width\s*=\s*/i, "").replace("%", "");
+      const number = Number.parseFloat(parsed);
+      if (Number.isFinite(number)) {
+        width = number > 1 ? number / 100 : number;
+        width = clamp(width, 0.15, 1);
+      }
+      continue;
+    }
+    if (/^side\s*=/i.test(value)) {
+      const parsed = value.replace(/^side\s*=\s*/i, "").toLowerCase();
+      side = parsed === "left" || parsed === "right" ? parsed : "full";
+      continue;
+    }
+    caption = caption ? `${caption} | ${value}` : value;
+  }
+  return { width, side, caption };
+}
+
+/** Escala una imagen dentro de un ancho y alto máximos. */
+function fitImage(entry, maxWidth, maxHeight, requestedWidth = null) {
+  const img = entry.img;
+  const natural = entry.displayW || img.width || 1;
+  let width = requestedWidth ? maxWidth * requestedWidth : Math.min(maxWidth, natural);
+  let height = (width * img.height) / img.width;
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = (height * img.width) / img.height;
+  }
+  return { width, height };
+}
+
+function drawImageEntry(page, entry, caption, options = {}) {
   const maxWidth = state.frame.width;
   const maxHeight = state.frame.bottom - state.frame.top - 20;
   if (!entry || !entry.img) {
@@ -774,26 +818,93 @@ function drawImageEntry(page, entry, caption) {
     drawMissingBox(page, "Imagen no encontrada", "Inserta de nuevo la imagen o revisa el token.");
     return page;
   }
-  const img = entry.img;
-  const baseWidth = entry.displayW || img.width || 1;
-  const scale = Math.min(maxWidth / baseWidth, 1);
-  let width = baseWidth * scale;
-  let height = (width * img.height) / img.width;
-  if (height > maxHeight) {
-    height = maxHeight;
-    width = (height * img.width) / img.height;
-  }
+  const { width: requestedWidth = null, side = "full" } = options;
+  const { width, height } = fitImage(entry, maxWidth, maxHeight, requestedWidth);
   if (page.y + height + 20 > state.frame.bottom) {
     page = newColumn(page);
   }
   const x = state.frame.x + Math.max(0, (maxWidth - width) / 2);
-  page.ctx.drawImage(img, x, page.y, width, height);
+  page.ctx.drawImage(entry.img, x, page.y, width, height);
   page.y += height + 16;
   if (caption) {
     drawLine(page.ctx, cleanText(caption), state.frame.x, page.y + 22, 20, false);
     page.y += 34;
   }
   page.y += 12;
+  return page;
+}
+
+/**
+ * Dibuja una imagen flotante con texto al otro lado.
+ * El texto se toma de las líneas entre el token y `[[/IMG]]`.
+ */
+function drawSideImage(page, entry, textLines, options, baseSize, lead) {
+  const gap = Math.max(14, Math.round(baseSize * 0.7));
+  const ratio = clamp(options.width ?? 0.45, 0.2, 0.7);
+  const imageWidth = Math.round(state.frame.width * ratio);
+  const textWidth = state.frame.width - imageWidth - gap;
+  const maxHeight = state.frame.bottom - state.frame.top - baseSize * 2;
+  const { width, height } = fitImage(entry, imageWidth, maxHeight, 1);
+  const caption = cleanText(options.caption || "");
+  const captionLines = caption
+    ? wrap(page.ctx, caption, width * 0.96, 16, false)
+    : [];
+  const captionHeight = captionLines.length ? captionLines.length * 21 + 6 : 0;
+  const blockHeight = height + 10 + captionHeight;
+  if (page.y + blockHeight > state.frame.bottom && page.y > state.frame.top + 1) {
+    page = newColumn(page);
+  }
+
+  const imageX =
+    options.side === "left"
+      ? state.frame.x
+      : state.frame.x + state.frame.width - width;
+  page.ctx.drawImage(entry.img, imageX, page.y, width, height);
+  let imageBottom = page.y + height;
+  if (captionLines.length) {
+    page.ctx.save();
+    page.ctx.fillStyle = "rgba(45,65,90,.78)";
+    page.ctx.font = font(16, false);
+    page.ctx.textAlign = "left";
+    page.ctx.textBaseline = "alphabetic";
+    captionLines.forEach((line, index) => {
+      page.ctx.fillText(line, imageX, imageBottom + 20 + index * 21);
+    });
+    page.ctx.restore();
+    imageBottom += captionHeight;
+  }
+
+  const textX =
+    options.side === "left" ? state.frame.x + width + gap : state.frame.x;
+  const fs = Math.round(baseSize * 0.92);
+  const lh = fs * lead;
+  let textY = page.y;
+  const availableBottom = state.frame.bottom;
+  let truncated = false;
+  for (const rawLine of textLines) {
+    const value = rawLine.trim();
+    if (!value) {
+      textY += lh * 0.5;
+      continue;
+    }
+    const content = cleanText(injectInlineMath(value));
+    const lines = wrap(page.ctx, content, textWidth * 0.96, fs, false);
+    for (const line of lines) {
+      if (textY + lh > availableBottom) {
+        truncated = true;
+        break;
+      }
+      drawLine(page.ctx, line, textX, textY + fs * 0.82, fs, false);
+      textY += lh;
+    }
+    if (truncated) break;
+  }
+  if (truncated) {
+    state.warnings.add("El texto junto a una imagen es demasiado largo y se cortó.");
+  }
+
+  page.y =
+    Math.max(imageBottom, textY) + baseSize * 0.65;
   return page;
 }
 
@@ -1378,9 +1489,26 @@ function layoutPass(markdown, { prepass, toc }) {
       continue;
     }
 
+    if (/^\[\[\/IMG\]\]$/i.test(line.trim())) {
+      continue;
+    }
+
     const imgMatch = line.trim().match(/^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/);
     if (imgMatch) {
-      page = drawImageEntry(page, state.images.get(parseInt(imgMatch[1], 10)), imgMatch[2] || "");
+      const options = parseImageTokenOptions(imgMatch[2] || "");
+      const entry = state.images.get(parseInt(imgMatch[1], 10));
+      if (options.side === "left" || options.side === "right") {
+        const textLines = [];
+        let lj = li + 1;
+        while (lj < srcLines.length && !/^\[\[\/IMG\]\]$/i.test(srcLines[lj].trim())) {
+          textLines.push(srcLines[lj]);
+          lj++;
+        }
+        if (lj < srcLines.length) li = lj;
+        page = drawSideImage(page, entry, textLines, options, baseSize, lead);
+      } else {
+        page = drawImageEntry(page, entry, options.caption, options);
+      }
       continue;
     }
 

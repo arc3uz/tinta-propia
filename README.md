@@ -27,7 +27,8 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Mezcla configurable de hasta cuatro fuentes manuscritas.
 - Diseño de hoja en una columna o en **3 columnas horizontales**.
 - Tablas, callouts, listas, citas, código en cajas, saltos de página y de columna.
-- Imágenes insertadas con tokens `[[IMG:n]]` y guardadas dentro del proyecto.
+- Imágenes redimensionables, con pie y disposición imagen + texto al lado.
+- Imágenes guardadas dentro del proyecto y editables con **Ajustar imagen**.
 - Índice con números de página automáticos.
 - Proyectos `.papernotes`, autoguardado y restauración de sesión.
 - Exportación PDF nativa con Rust y exportación PNG por página.
@@ -332,6 +333,22 @@ En **Ajustes → Fórmulas** hay tres modos:
 MathJax está incluido en la aplicación y funciona sin conexión. Las fórmulas se rasterizan dentro de la página, así que también aparecen en el PDF.
 
 Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se muestran como texto. En modo manuscrito, las fracciones se dibujan apiladas con su barra; las raíces y operaciones muy anidadas todavía pueden simplificarse.
+
+## Imágenes
+
+Al insertar una imagen se crea un token `[[IMG:n]]`. Para redimensionarla o poner texto al lado, coloca el cursor en esa línea y usa **Menú → Ajustar imagen…** o vuelve a pulsar el botón de imagen.
+
+Formatos admitidos:
+
+```text
+[[IMG:1]]                                  Imagen normal
+[[IMG:1|width=60%|Pie de imagen]]          Ancho personalizado
+[[IMG:1|width=40%|side=right|Pie]]        Imagen a la derecha
+Texto que aparece al lado izquierdo.
+[[/IMG]]
+```
+
+La imagen lateral ocupa el porcentaje indicado y el texto del bloque se coloca al otro lado. El pie es opcional.
 
 ## Mezcla de fuentes
 

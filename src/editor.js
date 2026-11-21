@@ -341,6 +341,18 @@ export class MarkdownEditor {
     this.insertText(text);
   }
 
+  /** Reemplaza un rango de líneas completo, útil para bloques de imagen. */
+  replaceLines(startLine, endLine, text) {
+    const doc = this.view.state.doc;
+    const start = doc.line(Math.max(1, Math.min(doc.lines, startLine)));
+    const end = doc.line(Math.max(1, Math.min(doc.lines, endLine)));
+    this.view.dispatch({
+      changes: { from: start.from, to: end.to, insert: text },
+      selection: { anchor: start.from + text.length },
+    });
+    this.view.focus();
+  }
+
   setFontSize(px) {
     this.fontSize = Math.max(11, Math.min(22, px));
     this.view.dom.style.fontSize = `${this.fontSize}px`;

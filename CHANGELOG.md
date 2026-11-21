@@ -6,6 +6,21 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-21
+
+### Added
+
+- Redimensionamiento de imágenes desde **Ajustar imagen**.
+- Diseño de imagen con texto al lado: imagen a la izquierda o a la derecha.
+- Pie de imagen opcional.
+- Vista previa de la imagen al ajustarla.
+
+### Changed
+
+- Los tokens de imagen admiten `width=`, `side=` y pie de imagen.
+- El botón de imagen del editor ajusta la imagen si el cursor está sobre su token.
+- El bloque de imagen lateral se cierra con `[[/IMG]]`.
+
 ## [0.8.0] - 2026-11-21
 
 ### Added
