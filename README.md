@@ -16,6 +16,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 ## Características
 
 - Editor Markdown con resaltado de sintaxis, números de línea, plegado, búsqueda e historial.
+- Distribución inicial 50/50 entre editor y vista previa, ajustable con el separador.
 - Vista previa real del manuscrito sobre canvas, con la fuente calibrada incluida.
 - Tamaños de hoja A4, Carta, Legal, A5 y Oficio.
 - Márgenes: **Ninguno (0,1 cm)**, muy pequeños, pequeños, normales y amplios.
@@ -28,6 +29,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Diseño de hoja en una columna o en **3 columnas horizontales**.
 - Tablas, callouts, listas, citas, código en cajas, saltos de página y de columna.
 - Imágenes redimensionables, con pie y disposición imagen + texto al lado.
+- Biblioteca de imágenes en el panel lateral para arrastrarlas al documento.
 - Imágenes guardadas dentro del proyecto y editables con **Ajustar imagen**.
 - Índice con números de página automáticos.
 - Proyectos `.papernotes`, autoguardado y restauración de sesión.
@@ -335,6 +337,8 @@ MathJax está incluido en la aplicación y funciona sin conexión. Las fórmulas
 Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se muestran como texto. En modo manuscrito, las fracciones se dibujan apiladas con su barra; las raíces y operaciones muy anidadas todavía pueden simplificarse.
 
 ## Imágenes
+
+Puedes importar varias imágenes en **Imágenes → Importar imágenes…**; quedan como miniaturas en el panel lateral. Arrástralas al editor o haz doble clic para insertarlas.
 
 Al insertar una imagen se crea un token `[[IMG:n]]`. Para redimensionarla o poner texto al lado, coloca el cursor en esa línea y usa **Menú → Ajustar imagen…** o vuelve a pulsar el botón de imagen.
 

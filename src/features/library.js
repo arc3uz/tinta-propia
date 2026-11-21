@@ -7,7 +7,7 @@ import {
   formatRelative,
   svgIcon,
 } from "../core/utils.js";
-import { confirmAction, promptText, showModal, toast } from "../core/modal.js";
+import { confirmAction, promptText, showModal, submitOnEnter, toast } from "../core/modal.js";
 import { save as saveFileDialog } from "@tauri-apps/plugin-dialog";
 import { openFolder } from "../core/system.js";
 
@@ -149,6 +149,29 @@ function editProjectTags(project, refresh, deps) {
     }),
   ]);
   input.id = "library-tags-input";
+  const saveTags = async (close) => {
+    const tags = [
+      ...new Set(
+        input.value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      ),
+    ].slice(0, 12);
+    try {
+      await invoke("set_project_tags", { path: project.path, tags });
+      if (app.projectPath === project.path) {
+        app.tags = tags;
+        deps.scheduleAutosave?.(200);
+      }
+      close();
+      toast("Etiquetas actualizadas.", { title: "Biblioteca" });
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast(`No se pudieron guardar las etiquetas: ${error}`, { type: "error" });
+    }
+  };
   const modal = showModal({
     title: "Editar etiquetas",
     subtitle: project.title || "Sin título",
@@ -159,32 +182,11 @@ function editProjectTags(project, refresh, deps) {
       {
         label: "Guardar etiquetas",
         kind: "primary",
-        onClick: async (close) => {
-          const tags = [
-            ...new Set(
-              input.value
-                .split(",")
-                .map((tag) => tag.trim())
-                .filter(Boolean)
-            ),
-          ].slice(0, 12);
-          try {
-            await invoke("set_project_tags", { path: project.path, tags });
-            if (app.projectPath === project.path) {
-              app.tags = tags;
-              deps.scheduleAutosave?.(200);
-            }
-            close();
-            toast("Etiquetas actualizadas.", { title: "Biblioteca" });
-            await refresh();
-          } catch (error) {
-            console.error(error);
-            toast(`No se pudieron guardar las etiquetas: ${error}`, { type: "error" });
-          }
-        },
+        onClick: (close) => saveTags(close),
       },
     ],
   });
+  submitOnEnter(input, () => saveTags(modal.close));
   setTimeout(() => input.focus(), 40);
   return modal;
 }
@@ -213,6 +215,24 @@ function moveProjectDialog(project, folders, refresh, deps) {
     }),
   ]);
   input.id = "library-folder-input";
+  const moveProject = async (close) => {
+    try {
+      const newPath = await invoke("move_project_to_folder", {
+        path: project.path,
+        folder: input.value.trim(),
+      });
+      if (app.projectPath === project.path) {
+        app.projectPath = newPath;
+        deps.scheduleAutosave?.(100);
+      }
+      close();
+      toast("Proyecto movido de carpeta.", { title: "Biblioteca" });
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast(`No se pudo mover el proyecto: ${error}`, { type: "error" });
+    }
+  };
   const modal = showModal({
     title: "Mover a carpeta",
     subtitle: project.title || "Sin título",
@@ -223,27 +243,11 @@ function moveProjectDialog(project, folders, refresh, deps) {
       {
         label: "Mover proyecto",
         kind: "primary",
-        onClick: async (close) => {
-          try {
-            const newPath = await invoke("move_project_to_folder", {
-              path: project.path,
-              folder: input.value.trim(),
-            });
-            if (app.projectPath === project.path) {
-              app.projectPath = newPath;
-              deps.scheduleAutosave?.(100);
-            }
-            close();
-            toast("Proyecto movido de carpeta.", { title: "Biblioteca" });
-            await refresh();
-          } catch (error) {
-            console.error(error);
-            toast(`No se pudo mover el proyecto: ${error}`, { type: "error" });
-          }
-        },
+        onClick: (close) => moveProject(close),
       },
     ],
   });
+  submitOnEnter(input, () => moveProject(modal.close));
   setTimeout(() => input.focus(), 40);
   return modal;
 }

@@ -6,6 +6,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-21
+
+### Added
+
+- Biblioteca de imágenes en el panel lateral, con miniaturas arrastrables al documento.
+- Importación de varias imágenes a la vez sin insertarlas inmediatamente.
+- Importación de varios archivos Markdown, unidos en un solo documento.
+- Confirmación con Enter en etiquetas, carpetas, renombres y mover a carpeta.
+
+### Changed
+
+- El editor y la vista previa se distribuyen por defecto al 50/50.
+- El doble clic en el separador restablece la distribución 50/50.
+
 ## [0.9.2] - 2026-11-21
 
 ### Performance

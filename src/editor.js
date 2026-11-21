@@ -138,6 +138,7 @@ export class MarkdownEditor {
     this.onChange = options.onChange || (() => {});
     this.onCursor = options.onCursor || (() => {});
     this.onDropFiles = options.onDropFiles || (() => {});
+    this.onDropImageId = options.onDropImageId || (() => {});
     this.onCompile = options.onCompile || (() => {});
     this.silent = false;
     this.fontSize = options.fontSize || 13.5;
@@ -185,13 +186,22 @@ export class MarkdownEditor {
       }),
       EditorView.domEventHandlers({
         dragover: (event) => {
-          if (event.dataTransfer?.types?.includes("Files")) {
+          if (
+            event.dataTransfer?.types?.includes("Files") ||
+            event.dataTransfer?.types?.includes("application/x-tinta-image")
+          ) {
             event.preventDefault();
             return true;
           }
           return false;
         },
         drop: (event) => {
+          const imageId = event.dataTransfer?.getData("application/x-tinta-image");
+          if (imageId) {
+            event.preventDefault();
+            this.onDropImageId(imageId);
+            return true;
+          }
           const files = Array.from(event.dataTransfer?.files || []).filter((file) =>
             file.type.startsWith("image/")
           );

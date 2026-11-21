@@ -13,7 +13,7 @@ export const isTauri =
 
 export const AUTOSAVE_KEY = "tintapropia.autosave.v1";
 export const SETTINGS_KEY = "tintapropia.settings.v1";
-export const EDITOR_WIDTH_KEY = "tintapropia.editorWidth.v1";
+export const EDITOR_WIDTH_KEY = "tintapropia.editorWidth.v2";
 export const SIDEBAR_KEY = "tintapropia.sidebar.v1";
 
 export const numberFmt = new Intl.NumberFormat("es-CL");

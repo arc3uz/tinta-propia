@@ -195,6 +195,19 @@ export function showProgress(title, subtitle) {
 }
 
 /**
+ * Confirma un formulario simple al pulsar Enter.
+ * Ignora Enter durante la composición de texto (IME).
+ */
+export function submitOnEnter(input, callback) {
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.isComposing) {
+      event.preventDefault();
+      callback();
+    }
+  });
+}
+
+/**
  * Pide un valor de texto en un modal.
  * @returns {Promise<string|null>} El texto limpio o `null` si se cancela.
  */
@@ -215,7 +228,14 @@ export function promptText({
     ]);
     input.id = "prompt-text-input";
     let decided = false;
-    showModal({
+    const submit = (close) => {
+      if (decided) return;
+      decided = true;
+      const text = input.value.trim();
+      close();
+      resolve(text || null);
+    };
+    const modal = showModal({
       title,
       subtitle,
       body,
@@ -233,18 +253,14 @@ export function promptText({
         {
           label: confirmLabel,
           kind: "primary",
-          onClick: (close) => {
-            decided = true;
-            const text = input.value.trim();
-            close();
-            resolve(text || null);
-          },
+          onClick: (close) => submit(close),
         },
       ],
       onClose: () => {
         if (!decided) resolve(null);
       },
     });
+    submitOnEnter(input, () => submit(modal.close));
     setTimeout(() => {
       input.focus();
       input.select();

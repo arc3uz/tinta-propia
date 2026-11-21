@@ -116,7 +116,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.9.2",
+    version: "0.10.0",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -932,7 +932,7 @@ function updatePreviewMeta() {
 
 /* ───────────────────────── Imágenes y Mermaid ───────────────────────── */
 
-async function insertImages(files) {
+async function addImages(files, { insert = true } = {}) {
   if (!app.editor || !files?.length) return;
   const tokens = [];
   let rejected = 0;
@@ -955,21 +955,87 @@ async function insertImages(files) {
     }
   }
   if (tokens.length) {
-    app.editor.insertText(`\n${tokens.join("\n")}\n`, { block: true });
-    markDirty();
-    scheduleCompile(220);
-    scheduleAutosave(1200);
-    updateDocStats();
-    toast(
-      `${tokens.length} ${tokens.length === 1 ? "imagen insertada" : "imágenes insertadas"}.`,
-      { title: "Imagen" }
-    );
+    if (insert) {
+      app.editor.insertText(`\n${tokens.join("\n")}\n`, { block: true });
+      markDirty();
+      scheduleCompile(220);
+      scheduleAutosave(1200);
+      updateDocStats();
+      toast(
+        `${tokens.length} ${tokens.length === 1 ? "imagen insertada" : "imágenes insertadas"}.`,
+        { title: "Imagen" }
+      );
+    } else {
+      toast(
+        `${tokens.length} ${tokens.length === 1 ? "imagen añadida" : "imágenes añadidas"} a la biblioteca.`,
+        { title: "Imágenes" }
+      );
+    }
+    renderImageLibrary();
   }
   if (rejected) {
-    toast(`${rejected} archivo(s) no se pudieron insertar (máximo 16 MB).`, {
+    toast(`${rejected} archivo(s) no se pudieron importar (máximo 16 MB).`, {
       type: "warn",
       title: "Imagen omitida",
     });
+  }
+  return tokens;
+}
+
+async function insertImages(files) {
+  return addImages(files, { insert: true });
+}
+
+async function importImagesToLibrary(files) {
+  return addImages(files, { insert: false });
+}
+
+function insertImageToken(id) {
+  if (!app.editor) return;
+  app.editor.insertText(`\n[[IMG:${id}]]\n`, { block: true });
+  markDirty();
+  scheduleCompile(220);
+  scheduleAutosave(1200);
+  updateDocStats();
+  toast("Imagen insertada en el documento.", { title: "Imagen" });
+}
+
+/** Muestra las imágenes del proyecto para arrastrarlas al editor. */
+function renderImageLibrary() {
+  const list = $("imageLibraryList");
+  if (!list) return;
+  const count = $("imageLibraryCount");
+  if (count) count.textContent = String(app.images.size);
+  list.innerHTML = "";
+  if (!app.images.size) {
+    list.append(
+      createEl("div", {
+        class: "image-library-empty",
+        text: "Arrastra una imagen al documento.",
+      })
+    );
+    return;
+  }
+  for (const [id, entry] of app.images) {
+    const source = entry.data || entry.img?.src;
+    if (!source) continue;
+    const item = createEl("div", {
+      class: "image-thumb",
+      draggable: "true",
+      title: "Arrastra al documento o haz doble clic",
+      "data-image-id": String(id),
+    });
+    item.append(
+      createEl("img", { src: source, alt: `Imagen ${id}` }),
+      createEl("span", { class: "image-thumb-id", text: `#${id}` })
+    );
+    item.addEventListener("dragstart", (event) => {
+      event.dataTransfer.effectAllowed = "copy";
+      event.dataTransfer.setData("application/x-tinta-image", String(id));
+      event.dataTransfer.setData("text/plain", `[[IMG:${id}]]`);
+    });
+    item.addEventListener("dblclick", () => insertImageToken(id));
+    list.append(item);
   }
 }
 
@@ -1240,6 +1306,7 @@ async function applyRuntimePayload(payload, path = null) {
   app.mermaidErrors.clear();
   app.mermaidQueue.clear();
   await hydrateAssets(app.assets);
+  renderImageLibrary();
   app.zoomMode = "fit";
   app.currentPage = 1;
   syncSettingsControls();
@@ -1263,6 +1330,7 @@ async function loadExampleTemplate() {
   app.assets = {};
   app.images = new Map();
   app.imageSeq = 0;
+  renderImageLibrary();
   app.mermaidErrors.clear();
   app.mermaidQueue.clear();
   app.editor.setValue(exampleMd);
@@ -1299,6 +1367,7 @@ async function newProject() {
   app.assets = {};
   app.images = new Map();
   app.imageSeq = 0;
+  renderImageLibrary();
   app.mermaidCache.clear();
   app.mermaidErrors.clear();
   app.mermaidQueue.clear();
@@ -1361,6 +1430,19 @@ function pickBrowserFile(accept) {
   });
 }
 
+function pickBrowserFiles(accept) {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.multiple = true;
+    input.addEventListener("change", () => {
+      resolve(Array.from(input.files || []));
+    });
+    input.click();
+  });
+}
+
 async function openProjectFlow() {
   if (!app.isTauri) {
     const file = await pickBrowserFile(".papernotes,.json,application/json");
@@ -1401,30 +1483,40 @@ async function openMarkdownFlow() {
   const ok = await confirmDiscard();
   if (!ok) return;
   try {
-    let content = null;
-    let name = "documento.md";
+    const entries = [];
     if (app.isTauri) {
-      const path = await openFileDialog({
+      const selected = await openFileDialog({
         title: "Importar Markdown",
-        multiple: false,
+        multiple: true,
         filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }],
       });
-      if (!path) return;
-      content = await invoke("read_text_file", { path });
-      name = path.split(/[\\/]/).pop() || name;
+      if (!selected) return;
+      const paths = Array.isArray(selected) ? selected : [selected];
+      for (const path of paths) {
+        entries.push({
+          name: path.split(/[\\/]/).pop() || "documento.md",
+          content: await invoke("read_text_file", { path }),
+        });
+      }
     } else {
-      const file = await pickBrowserFile(".md,.markdown,.txt,text/markdown,text/plain");
-      if (!file) return;
-      content = await file.text();
-      name = file.name;
+      const files = await pickBrowserFiles(".md,.markdown,.txt,text/markdown,text/plain");
+      if (!files.length) return;
+      for (const file of files) {
+        entries.push({ name: file.name, content: await file.text() });
+      }
     }
+    if (!entries.length) return;
+    const content = entries.map((entry) => entry.content).join("\n\n");
+    const firstName = entries[0].name.replace(/\.[^.]+$/, "") || "Sin título";
     app.compileGen += 1;
-    app.title = name.replace(/\.[^.]+$/, "") || "Sin título";
+    app.title =
+      entries.length === 1 ? firstName : `Documento combinado (${entries.length})`;
     app.projectPath = null;
     app.tags = [];
     app.assets = {};
     app.images = new Map();
     app.imageSeq = 0;
+    renderImageLibrary();
     app.mermaidCache.clear();
     app.mermaidErrors.clear();
     app.mermaidQueue.clear();
@@ -1438,7 +1530,9 @@ async function openMarkdownFlow() {
     await compile({ preservePage: false });
     scheduleAutosave(500);
     toast(
-      "Markdown importado. Guarda como proyecto para conservar imágenes y ajustes.",
+      entries.length === 1
+        ? "Markdown importado. Guarda como proyecto para conservar imágenes y ajustes."
+        : `${entries.length} Markdown importados y unidos en un solo documento.`,
       { title: "Documento abierto", timeout: 6000 }
     );
   } catch (error) {
@@ -1581,7 +1675,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.9.2"],
+    ["Versión", app.boot?.version || "0.10.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -1716,14 +1810,14 @@ function setupSplitter() {
   splitter.addEventListener("dblclick", () => {
     const workspace = $("workspace");
     const sidebar = $("sidebar");
-    applyEditorWidth((workspace.clientWidth - sidebar.offsetWidth) * 0.46);
-    localStorage.setItem(EDITOR_WIDTH_KEY, "0.46");
+    applyEditorWidth((workspace.clientWidth - sidebar.offsetWidth) * 0.5);
+    localStorage.setItem(EDITOR_WIDTH_KEY, "0.5");
   });
 }
 
 function restoreEditorWidth() {
   const saved = parseFloat(localStorage.getItem(EDITOR_WIDTH_KEY));
-  const fraction = Number.isFinite(saved) && saved > 0 ? saved : 0.46;
+  const fraction = Number.isFinite(saved) && saved > 0 ? saved : 0.5;
   const workspace = $("workspace");
   const sidebar = $("sidebar");
   applyEditorWidth((workspace.clientWidth - sidebar.offsetWidth) * fraction);
@@ -1922,6 +2016,13 @@ function bindEditorEvents() {
     insertImages(event.target.files);
     event.target.value = "";
   });
+  $("hiddenImageLibraryInput").addEventListener("change", (event) => {
+    importImagesToLibrary(event.target.files);
+    event.target.value = "";
+  });
+  $("importImagesBtn").addEventListener("click", () => {
+    $("hiddenImageLibraryInput").click();
+  });
   $("mainFile").addEventListener("click", () => app.editor?.focus());
   $("addMdBtn").addEventListener("click", openMarkdownFlow);
   $("emptyOpenBtn").addEventListener("click", openProjectFlow);
@@ -1973,9 +2074,20 @@ function bindEditorEvents() {
   });
 
   $("previewScroll").addEventListener("dragover", (event) => {
-    if (event.dataTransfer?.types?.includes("Files")) event.preventDefault();
+    if (
+      event.dataTransfer?.types?.includes("Files") ||
+      event.dataTransfer?.types?.includes("application/x-tinta-image")
+    ) {
+      event.preventDefault();
+    }
   });
   $("previewScroll").addEventListener("drop", (event) => {
+    const imageId = event.dataTransfer?.getData("application/x-tinta-image");
+    if (imageId) {
+      event.preventDefault();
+      insertImageToken(Number(imageId));
+      return;
+    }
     const files = Array.from(event.dataTransfer?.files || []).filter((file) =>
       file.type.startsWith("image/")
     );
@@ -2051,6 +2163,9 @@ function bindEditorEvents() {
         break;
       case "image-options":
         openImageOptionsModal();
+        break;
+      case "import-images":
+        $("hiddenImageLibraryInput").click();
         break;
       case "insert-formula":
         openFormulaPalette();
@@ -2265,6 +2380,7 @@ async function boot() {
   preset.append(customOption);
 
   await hydrateAssets(app.assets);
+  renderImageLibrary();
   await ensureFont(app.settings.font);
   populateFontSelect(app.settings.font);
   syncSettingsControls();
@@ -2275,6 +2391,7 @@ async function boot() {
     onChange: handleEditorChange,
     onCursor: handleCursor,
     onDropFiles: insertImages,
+    onDropImageId: (id) => insertImageToken(Number(id)),
     onCompile: () => compile(),
   });
 
