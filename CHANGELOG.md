@@ -6,6 +6,23 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-20
+
+### Added
+
+- Documentación de arquitectura del frontend en `docs/ARCHITECTURE.md`.
+
+### Changed
+
+- El menú de inicio y la biblioteca ahora se abren como panel lateral derecho.
+- El código se dividió en módulos `core/` y `features/`, con comentarios de responsabilidad y JSDoc en las funciones compartidas.
+- La biblioteca recibe las acciones de proyecto como dependencias explícitas.
+- El esquema y la biblioteca usan `DocumentFragment` para insertar listas de una sola vez.
+
+### Fixed
+
+- El panel de inicio ya no queda centrado: sigue la convención de los paneles laterales de la aplicación.
+
 ## [0.4.0] - 2026-11-20
 
 ### Added

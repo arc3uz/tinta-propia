@@ -371,7 +371,7 @@ En el primer arranque los diagramas se preparan en segundo plano para que el doc
 
 ```text
 src/
-  main.js       interfaz, estado, guardado, atajos, diálogos y exportación
+  main.js       orquestador: arranque, editor, compilación, proyectos y ajustes
   engine.js     motor canvas: texto, párrafos, tablas, callouts, código, imágenes
   editor.js     CodeMirror 6 y tema del editor
   mermaid.js    render de Mermaid a imagen
@@ -380,6 +380,16 @@ src/
   math.js       fórmulas MathJax y modo manuscrito
   assets/       fuente calibrada, fuentes incluidas y plantilla de ejemplo
   assets/example.md
+
+  core/
+    state.js    estado compartido y claves de persistencia
+    utils.js    utilidades de DOM, formato y archivos
+    modal.js    modales, avisos, confirmaciones y progreso
+
+  features/
+    library.js  biblioteca de proyectos, etiquetas y carpetas
+    export.js   exportación PDF, PNG y Markdown
+    outline.js  esquema y estadísticas del documento
 
 public/vendor/mathjax/
   tex-svg.js    MathJax 3.2.2 local
@@ -395,6 +405,7 @@ src-tauri/
   icons/
 
 docs/
+  ARCHITECTURE.md
   branding/
     logo.png
   THIRD_PARTY_NOTICES.md
@@ -411,7 +422,7 @@ docs/
     release.yml
 ```
 
-El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga de archivos, fuentes, diálogos, autosave y PDF. Mermaid también sigue en JavaScript dentro del webview.
+El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga de archivos, fuentes, diálogos, autosave y PDF. Mermaid también sigue en JavaScript dentro del webview. La estructura de módulos y el flujo de compilación están documentados en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Notas y límites
 
@@ -435,6 +446,7 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 - [Guía de contribución](.github/CONTRIBUTING.md)
 - [Código de conducta](.github/CODE_OF_CONDUCT.md)
 - [Política de seguridad](.github/SECURITY.md)
+- [Arquitectura del frontend](docs/ARCHITECTURE.md)
 - [Historial de cambios](CHANGELOG.md)
 - [Avisos de terceros y licencias de fuentes](docs/THIRD_PARTY_NOTICES.md)
 - [Licencia MIT](LICENSE)

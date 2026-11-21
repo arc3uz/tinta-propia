@@ -1,3 +1,19 @@
+/**
+ * Tinta Propia — punto de entrada de la interfaz.
+ *
+ * Este archivo orquesta el editor, la compilación del manuscrito, los ajustes
+ * y los flujos de proyecto. Las piezas reutilizables viven en:
+ *
+ *   core/state.js      estado compartido y claves de persistencia
+ *   core/utils.js      utilidades de DOM y formato
+ *   core/modal.js      modales, avisos y progreso
+ *   features/library.js biblioteca, etiquetas y carpetas
+ *   features/export.js  PDF, PNG y Markdown
+ *   features/outline.js esquema y estadísticas del documento
+ *
+ * Las acciones de proyecto se inyectan en la biblioteca para mantener ese
+ * módulo independiente del ciclo de compilación.
+ */
 import "./fonts.css";
 import "./styles.css";
 import iconUrl from "./assets/brand/icon.png";
@@ -10,7 +26,6 @@ import {
   pageDimensions,
   DEFAULT_SETTINGS,
   PRESETS,
-  FONTS,
   loadImage,
 } from "./engine.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -18,15 +33,35 @@ import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plug
 import { openPath } from "@tauri-apps/plugin-opener";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-const $ = (id) => document.getElementById(id);
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const isTauri =
-  typeof window !== "undefined" && Boolean(window.__TAURI_INTERNALS__);
-const numberFmt = new Intl.NumberFormat("es-CL");
-const AUTOSAVE_KEY = "tintapropia.autosave.v1";
-const SETTINGS_KEY = "tintapropia.settings.v1";
-const EDITOR_WIDTH_KEY = "tintapropia.editorWidth.v1";
-const SIDEBAR_KEY = "tintapropia.sidebar.v1";
+import {
+  AUTOSAVE_KEY,
+  EDITOR_WIDTH_KEY,
+  SETTINGS_KEY,
+  SIDEBAR_KEY,
+  app,
+} from "./core/state.js";
+import {
+  $,
+  base64ToBuffer,
+  clamp,
+  createEl,
+  displayFileName,
+  fileToDataURL,
+  formatBytes,
+  slugify,
+  svgIcon,
+  yieldFrame,
+} from "./core/utils.js";
+import { showModal, toast } from "./core/modal.js";
+import { showLibrary, showRecentProjects } from "./features/library.js";
+import {
+  scheduleOutline,
+  scheduleStats,
+  setActiveOutline,
+  updateDocStats,
+  updateOutline,
+} from "./features/outline.js";
+import { exportMarkdown, exportPDF, exportPagePNG } from "./features/export.js";
 
 const SETTING_IDS = [
   "font",
@@ -74,308 +109,11 @@ const NUMERIC_IDS = new Set([
 ]);
 const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", "columnGuides"]);
 
-const app = {
-  isTauri,
-  ready: false,
-  boot: null,
-  bootError: null,
-  editor: null,
-  title: "Sin título",
-  projectPath: null,
-  tags: [],
-  settings: { ...DEFAULT_SETTINGS },
-  assets: {},
-  images: new Map(),
-  imageSeq: 0,
-  pages: [],
-  result: null,
-  pageEls: [],
-  currentPage: 1,
-  zoom: 1,
-  zoomMode: "fit",
-  dirty: false,
-  compiling: false,
-  pendingCompile: false,
-  compileGen: 0,
-  compileTimer: null,
-  autosaveTimer: null,
-  autosaveRunning: false,
-  autosavePending: false,
-  settingsTimer: null,
-  outlineTimer: null,
-  statsTimer: null,
-  mermaidCache: new Map(),
-  mathCache: new Map(),
-  mermaidErrors: new Map(),
-  mermaidQueue: new Set(),
-  mermaidJobRunning: false,
-  fontList: [...FONTS],
-  lastSavedAt: 0,
-  lastWarningKey: "",
-  restored: false,
-  modalStack: [],
-  scrollRaf: 0,
-  fitTimer: null,
-  closing: false,
-};
-
-/* ───────────────────────── Utilidades ───────────────────────── */
-
-function slugify(text) {
-  return String(text || "documento")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64) || "documento";
-}
-
-function displayFileName() {
-  return `${slugify(app.title)}.md`;
-}
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function formatRelative(seconds) {
-  if (!seconds) return "";
-  const diff = Math.max(0, Date.now() / 1000 - seconds);
-  if (diff < 90) return "hace un momento";
-  if (diff < 3600) return `hace ${Math.round(diff / 60)} min`;
-  if (diff < 86400) return `hace ${Math.round(diff / 3600)} h`;
-  if (diff < 86400 * 30) return `hace ${Math.round(diff / 86400)} d`;
-  return new Date(seconds * 1000).toLocaleDateString("es-CL");
-}
-
-function yieldFrame() {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
-
-function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function base64ToBuffer(base64) {
-  const clean = base64.includes(",") ? base64.slice(base64.indexOf(",") + 1) : base64;
-  const binary = atob(clean);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
-}
-
-function createEl(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) {
-    if (key === "class") node.className = value;
-    else if (key === "text") node.textContent = value;
-    else if (key === "html") node.innerHTML = value;
-    else if (key.startsWith("on") && typeof value === "function") {
-      node.addEventListener(key.slice(2).toLowerCase(), value);
-    } else if (value !== undefined && value !== null) {
-      node.setAttribute(key, value);
-    }
-  }
-  for (const child of children) {
-    if (child == null) continue;
-    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
-  }
-  return node;
-}
-
-function svgIcon(name, className = "") {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  if (className) svg.setAttribute("class", className);
-  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-  use.setAttribute("href", `#i-${name}`);
-  svg.append(use);
-  return svg;
-}
-
-function toast(message, options = {}) {
-  const type = options.type || "ok";
-  const title = options.title || "";
-  const iconName =
-    type === "error" ? "alert" : type === "warn" ? "alert" : type === "info" ? "info" : "check";
-  const root = $("toastRoot");
-  const el = createEl("div", { class: `toast ${type}` }, [
-    createEl("span", { class: "toast-icon" }, [svgIcon(iconName)]),
-    createEl("div", {}, [
-      title ? createEl("strong", { text: title }) : null,
-      createEl("span", { text: message }),
-    ]),
-  ]);
-  root.append(el);
-  const timeout = options.timeout ?? (type === "error" ? 7000 : 4300);
-  const hide = () => {
-    el.classList.add("hide");
-    setTimeout(() => el.remove(), 230);
-  };
-  const timer = setTimeout(hide, timeout);
-  el.addEventListener("click", () => {
-    clearTimeout(timer);
-    hide();
-  });
-  return el;
-}
-
-/* ───────────────────────── Modales ───────────────────────── */
-
-function showModal({
-  title,
-  subtitle = "",
-  body = null,
-  actions = [],
-  narrow = false,
-  wide = false,
-  dismissible = true,
-  onClose = null,
-}) {
-  const root = $("modalRoot");
-  const backdrop = createEl("div", { class: "modal-backdrop" });
-  const head = createEl("div", { class: "modal-head" }, [
-    createEl("div", {}, [
-      createEl("h2", { text: title }),
-      subtitle ? createEl("p", { text: subtitle }) : null,
-    ]),
-    dismissible
-      ? createEl(
-          "button",
-          {
-            class: "icon-btn",
-            title: "Cerrar",
-            "aria-label": "Cerrar",
-            onclick: () => close(),
-          },
-          [svgIcon("x")]
-        )
-      : null,
-  ]);
-  const bodyEl = createEl("div", { class: "modal-body" });
-  if (body instanceof Node) bodyEl.append(body);
-  else if (typeof body === "string") bodyEl.innerHTML = body;
-  const foot = createEl("div", { class: "modal-foot" });
-  const modal = createEl(
-    "div",
-    {
-      class: `modal${narrow ? " narrow" : ""}${wide ? " wide" : ""}`,
-      role: "dialog",
-      "aria-modal": "true",
-      "aria-label": title,
-    },
-    [head, bodyEl]
-  );
-  if (actions.length) {
-    for (const action of actions) {
-      foot.append(
-        createEl(
-          "button",
-          {
-            class: `btn ${action.kind || "ghost"}`,
-            text: action.label,
-            onclick: () => action.onClick?.(close),
-          }
-        )
-      );
-    }
-    modal.append(foot);
-  }
-  backdrop.append(modal);
-  root.append(backdrop);
-
-  let closed = false;
-  const close = (reason = "close") => {
-    if (closed) return;
-    closed = true;
-    backdrop.remove();
-    const idx = app.modalStack.indexOf(close);
-    if (idx >= 0) app.modalStack.splice(idx, 1);
-    onClose?.(reason);
-  };
-  if (dismissible) app.modalStack.push(close);
-  backdrop.addEventListener("mousedown", (event) => {
-    if (event.target === backdrop && dismissible) close("backdrop");
-  });
-  setTimeout(() => {
-    const target = modal.querySelector("textarea, input, button");
-    target?.focus();
-  }, 30);
-  return { close, modal, body: bodyEl, footer: foot };
-}
-
-function confirmAction({ title, message, confirmLabel = "Continuar", danger = false }) {
-  return new Promise((resolve) => {
-    let decided = false;
-    const modal = showModal({
-      title,
-      body: createEl("p", { class: "confirm-text", text: message }),
-      narrow: true,
-      actions: [
-        {
-          label: "Cancelar",
-          kind: "ghost",
-          onClick: (close) => {
-            decided = true;
-            close();
-            resolve(false);
-          },
-        },
-        {
-          label: confirmLabel,
-          kind: danger ? "danger" : "primary",
-          onClick: (close) => {
-            decided = true;
-            close();
-            resolve(true);
-          },
-        },
-      ],
-      onClose: () => {
-        if (!decided) resolve(false);
-      },
-    });
-    modal.modal.querySelector(".modal-foot .btn.primary, .modal-foot .btn.danger")?.focus();
-  });
-}
-
-function showProgress(title, subtitle) {
-  const text = createEl("p", { class: "progress-text", text: "Preparando…" });
-  const bar = createEl("span");
-  const body = createEl("div", { class: "progress-box" }, [
-    createEl("div", { class: "progress-track" }, [bar]),
-    text,
-  ]);
-  const modal = showModal({
-    title,
-    subtitle,
-    body,
-    narrow: true,
-    dismissible: false,
-  });
-  return {
-    update(progress, label) {
-      bar.style.width = `${Math.round(clamp(progress, 0, 1) * 100)}%`;
-      if (label) text.textContent = label;
-    },
-    close() {
-      modal.close();
-    },
-  };
-}
-
 /* ───────────────────────── Carga inicial ───────────────────────── */
 
 function fallbackBootstrap() {
   return {
-    version: "0.4.0",
+    version: "0.5.0",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -512,98 +250,6 @@ function handleCursor(cursor) {
   const selected = cursor.selected ? ` · ${cursor.selected} sel.` : "";
   $("cursorState").textContent = `Ln ${cursor.line}, Col ${cursor.col}${selected}`;
   setActiveOutline(cursor.line);
-}
-
-function scheduleStats() {
-  clearTimeout(app.statsTimer);
-  app.statsTimer = setTimeout(updateDocStats, 220);
-}
-
-function updateDocStats() {
-  if (!app.editor) return;
-  const text = app.editor.getValue();
-  const bytes = new TextEncoder().encode(text).length;
-  const words = (text.match(/[\p{L}\p{N}][\p{L}\p{N}'’_-]*/gu) || []).length;
-  $("wordCount").textContent = `${numberFmt.format(words)} palabras`;
-  $("fileSize").textContent = formatBytes(bytes);
-  const pages = app.pages.length;
-  $("fileMeta").textContent = `Markdown · ${formatBytes(bytes)}${pages ? ` · ${pages} pág.` : ""}`;
-  $("sbFile").textContent = displayFileName();
-}
-
-function parseOutline(markdown) {
-  const lines = String(markdown || "").split(/\r?\n/);
-  const items = [];
-  let inFence = false;
-  lines.forEach((line, index) => {
-    if (/^\s*```/.test(line)) {
-      inFence = !inFence;
-      return;
-    }
-    if (inFence) return;
-    const match = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
-    if (!match) return;
-    const text = match[2]
-      .replace(/`([^`]+)`/g, "$1")
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-      .replace(/[*_~]/g, "")
-      .trim();
-    items.push({ level: match[1].length, text, line: index + 1 });
-  });
-  return items;
-}
-
-function scheduleOutline() {
-  clearTimeout(app.outlineTimer);
-  app.outlineTimer = setTimeout(updateOutline, 220);
-}
-
-function updateOutline() {
-  if (!app.editor) return;
-  const items = parseOutline(app.editor.getValue());
-  const list = $("outlineList");
-  list.innerHTML = "";
-  if (!items.length) {
-    list.append(
-      createEl("div", {
-        class: "outline-empty",
-        text: "Los títulos del documento aparecerán aquí.",
-      })
-    );
-  } else {
-    for (const item of items) {
-      const button = createEl("button", {
-        class: `outline-item level-${Math.min(item.level, 4)}`,
-        title: item.text,
-        text: item.text,
-      });
-      button.dataset.line = String(item.line);
-      button.addEventListener("click", () => app.editor.goToLine(item.line));
-      list.append(button);
-    }
-  }
-  $("outlineCount").textContent = String(items.length);
-  const cursor = app.editor.getCursor();
-  setActiveOutline(cursor.line);
-}
-
-function setActiveOutline(line) {
-  const list = $("outlineList");
-  const items = Array.from(list.querySelectorAll(".outline-item"));
-  let active = null;
-  for (const item of items) {
-    if (Number(item.dataset.line) <= line) active = item;
-    else break;
-  }
-  for (const item of items) item.classList.toggle("active", item === active);
-  if (active) {
-    const rect = active.getBoundingClientRect();
-    const box = list.getBoundingClientRect();
-    if (rect.top < box.top + 4 || rect.bottom > box.bottom - 4) {
-      active.scrollIntoView({ block: "nearest" });
-    }
-  }
 }
 
 /* ───────────────────────── Ajustes ───────────────────────── */
@@ -940,6 +586,13 @@ function setCompileState(kind, text) {
   el.append(document.createTextNode(` ${text}`));
 }
 
+/**
+ * Compila el documento completo.
+ *
+ * Orquesta el render de fórmulas y Mermaid, la paginación del motor y el
+ * montaje de las hojas en la vista previa. Si cambia la generación de
+ * compilación, descarta el resultado anterior para evitar parpadeos.
+ */
 async function compile({ initial = false, preservePage = true } = {}) {
   if (!app.editor) return;
   if (app.compiling) {
@@ -1309,31 +962,6 @@ async function insertImages(files) {
   }
 }
 
-async function exportPagePNG(canvas, pageNumber) {
-  try {
-    const dataUrl = canvas.toDataURL("image/png");
-    const name = `${slugify(app.title)}-pagina-${pageNumber}.png`;
-    if (app.isTauri) {
-      const path = await saveFileDialog({
-        title: "Guardar página como PNG",
-        defaultPath: name,
-        filters: [{ name: "Imagen PNG", extensions: ["png"] }],
-      });
-      if (!path) return;
-      await invoke("save_binary_file", { path, dataBase64: dataUrl });
-      toast("Página exportada como PNG.", { title: "Listo" });
-    } else {
-      const anchor = document.createElement("a");
-      anchor.href = dataUrl;
-      anchor.download = name;
-      anchor.click();
-    }
-  } catch (error) {
-    console.error(error);
-    toast("No se pudo exportar la página.", { type: "error" });
-  }
-}
-
 function openMermaidModal() {
   const textarea = createEl("textarea", {
     class: "mermaid-input",
@@ -1530,6 +1158,7 @@ async function loadExampleTemplate() {
   });
 }
 
+/** Crea un documento vacío y limpia la sesión anterior. */
 async function newProject() {
   const ok = await confirmDiscard();
   if (!ok) return;
@@ -1566,6 +1195,7 @@ async function newProject() {
   });
 }
 
+/** Abre un `.papernotes` desde una ruta conocida y actualiza recientes. */
 async function openProjectPath(path) {
   const ok = await confirmDiscard();
   if (!ok) return;
@@ -1628,514 +1258,20 @@ async function openProjectFlow() {
     }
     return;
   }
-  showRecentProjects();
+  await showRecentProjects({ openProjectPath, chooseProjectFile });
 }
 
-async function showRecentProjects() {
-  let recent = [];
-  try {
-    recent = await invoke("recent_projects");
-  } catch {
-    recent = app.boot?.recent || [];
-  }
-  const body = createEl("div", { class: "recent-box" });
-  const render = (items) => {
-    body.innerHTML = "";
-    if (!items.length) {
-      body.append(
-        createEl("div", { class: "recent-empty" }, [
-          svgIcon("folder"),
-          createEl("p", { text: "Todavía no hay proyectos guardados." }),
-          createEl("small", {
-            text: "Crea uno nuevo o elige un archivo .papernotes del disco.",
-          }),
-        ])
-      );
-      return;
-    }
-    body.append(createEl("div", { class: "recent-title", text: "Recientes" }));
-    for (const item of items) {
-      const row = createEl("div", { class: "recent-row" });
-      const openButton = createEl("button", { class: "recent-open" }, [
-        svgIcon("file"),
-        createEl("span", { class: "recent-copy" }, [
-          createEl("strong", { text: item.title || "Sin título" }),
-          createEl("small", { text: item.path }),
-        ]),
-        createEl("span", {
-          class: "recent-time",
-          text: formatRelative(item.openedAt),
-        }),
-      ]);
-      openButton.addEventListener("click", async () => {
-        modal.close();
-        await openProjectPath(item.path);
-      });
-      const remove = createEl(
-        "button",
-        {
-          class: "icon-btn recent-remove",
-          title: "Quitar de recientes",
-          onclick: async (event) => {
-            event.stopPropagation();
-            try {
-              await invoke("remove_recent", { path: item.path });
-            } catch {
-              /* noop */
-            }
-            render(items.filter((x) => x.path !== item.path));
-          },
-        },
-        [svgIcon("trash")]
-      );
-      row.append(openButton, remove);
-      body.append(row);
-    }
-  };
-  render(recent);
-  const modal = showModal({
-    title: "Abrir proyecto",
-    subtitle: "Los proyectos recientes viven en tu equipo; nada se sube a internet.",
-    body,
-    actions: [
-      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
-      {
-        label: "Elegir archivo…",
-        kind: "primary",
-        onClick: async (close) => {
-          close();
-          try {
-            await chooseProjectFile();
-          } catch (error) {
-            console.error(error);
-          }
-        },
-      },
-    ],
+function openLibrary() {
+  return showLibrary({
+    newProject,
+    openProjectFlow,
+    chooseProjectFile,
+    openMarkdownFlow,
+    loadExampleTemplate,
+    saveProjectAs,
+    openProjectPath,
+    scheduleAutosave,
   });
-}
-
-async function loadLibraryProjects() {
-  if (!app.isTauri) return [];
-  try {
-    return await invoke("list_library");
-  } catch (error) {
-    console.warn("No se pudo cargar la biblioteca", error);
-    return [];
-  }
-}
-
-async function loadRecentProjects() {
-  if (!app.isTauri) return app.boot?.recent || [];
-  try {
-    return await invoke("recent_projects");
-  } catch {
-    return app.boot?.recent || [];
-  }
-}
-
-function countLibraryProjects(folder) {
-  let count = folder.projects.length;
-  for (const child of folder.folders.values()) count += countLibraryProjects(child);
-  return count;
-}
-
-function buildLibraryTree(projects) {
-  const root = { folders: new Map(), projects: [] };
-  for (const project of projects) {
-    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
-    let node = root;
-    for (const part of parts) {
-      if (!node.folders.has(part)) {
-        node.folders.set(part, { name: part, folders: new Map(), projects: [] });
-      }
-      node = node.folders.get(part);
-    }
-    node.projects.push(project);
-  }
-  return root;
-}
-
-function sortLibraryTree(node) {
-  node.projects.sort((a, b) =>
-    (a.title || "").localeCompare(b.title || "", "es", { sensitivity: "base" })
-  );
-  for (const folder of node.folders.values()) sortLibraryTree(folder);
-}
-
-function collectLibraryFolders(projects) {
-  const folders = new Set();
-  for (const project of projects) {
-    const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
-    let current = "";
-    for (const part of parts) {
-      current = current ? `${current}/${part}` : part;
-      folders.add(current);
-    }
-  }
-  return [...folders].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
-}
-
-function editProjectTags(project, refresh) {
-  if (!app.isTauri) return;
-  const input = createEl("input", { type: "text", placeholder: "examen, repaso, pendientes" });
-  input.value = Array.isArray(project.tags) ? project.tags.join(", ") : "";
-  const body = createEl("div", {}, [
-    createEl("label", { class: "select-label", for: "library-tags-input", text: "Etiquetas separadas por comas" }),
-    input,
-    createEl("p", {
-      class: "setting-hint small",
-      text: "Sirven para reconocer y agrupar proyectos dentro de la biblioteca.",
-    }),
-  ]);
-  input.id = "library-tags-input";
-  const modal = showModal({
-    title: "Editar etiquetas",
-    subtitle: project.title || "Sin título",
-    body,
-    narrow: true,
-    actions: [
-      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
-      {
-        label: "Guardar etiquetas",
-        kind: "primary",
-        onClick: async (close) => {
-          const tags = [
-            ...new Set(
-              input.value
-                .split(",")
-                .map((tag) => tag.trim())
-                .filter(Boolean)
-            ),
-          ].slice(0, 12);
-          try {
-            await invoke("set_project_tags", { path: project.path, tags });
-            if (app.projectPath === project.path) {
-              app.tags = tags;
-              scheduleAutosave(200);
-            }
-            close();
-            toast("Etiquetas actualizadas.", { title: "Biblioteca" });
-            await refresh();
-          } catch (error) {
-            console.error(error);
-            toast(`No se pudieron guardar las etiquetas: ${error}`, { type: "error" });
-          }
-        },
-      },
-    ],
-  });
-  setTimeout(() => input.focus(), 40);
-  return modal;
-}
-
-function moveProjectDialog(project, folders, refresh) {
-  if (!app.isTauri) return;
-  const input = createEl("input", {
-    type: "text",
-    list: "library-folder-options",
-    placeholder: "Sin carpeta (raíz)",
-  });
-  input.value = project.folder || "";
-  const list = createEl("datalist", { id: "library-folder-options" });
-  for (const folder of folders) list.append(createEl("option", { value: folder }));
-  const body = createEl("div", {}, [
-    createEl("label", {
-      class: "select-label",
-      for: "library-folder-input",
-      text: "Carpeta dentro de la biblioteca",
-    }),
-    input,
-    list,
-    createEl("p", {
-      class: "setting-hint small",
-      text: "Déjalo vacío para la raíz. Si la carpeta no existe, se crea al mover el proyecto.",
-    }),
-  ]);
-  input.id = "library-folder-input";
-  const modal = showModal({
-    title: "Mover a carpeta",
-    subtitle: project.title || "Sin título",
-    body,
-    narrow: true,
-    actions: [
-      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
-      {
-        label: "Mover proyecto",
-        kind: "primary",
-        onClick: async (close) => {
-          try {
-            const newPath = await invoke("move_project_to_folder", {
-              path: project.path,
-              folder: input.value.trim(),
-            });
-            if (app.projectPath === project.path) {
-              app.projectPath = newPath;
-              updateTitleUI();
-              scheduleAutosave(100);
-            }
-            close();
-            toast("Proyecto movido de carpeta.", { title: "Biblioteca" });
-            await refresh();
-          } catch (error) {
-            console.error(error);
-            toast(`No se pudo mover el proyecto: ${error}`, { type: "error" });
-          }
-        },
-      },
-    ],
-  });
-  setTimeout(() => input.focus(), 40);
-  return modal;
-}
-
-function createLibraryRow(project, closeWelcome, refresh, folders) {
-  const row = createEl("div", { class: "library-project", title: project.path });
-  const tags = Array.isArray(project.tags) ? project.tags : [];
-  const updated = project.updatedAt ? formatRelative(project.updatedAt) : "";
-  const meta = [updated, project.size ? formatBytes(project.size) : ""].filter(Boolean).join(" · ");
-  const open = createEl("button", { class: "library-open", type: "button" }, [
-    svgIcon("file"),
-    createEl("span", { class: "library-copy" }, [
-      createEl("strong", { text: project.title || "Sin título" }),
-      tags.length
-        ? createEl(
-            "span",
-            { class: "library-tags" },
-            tags.map((tag) => createEl("span", { class: "library-tag", text: tag }))
-          )
-        : null,
-      createEl("small", { text: meta }),
-    ]),
-    app.projectPath === project.path
-      ? createEl("span", { class: "library-current", text: "Actual" })
-      : null,
-  ]);
-  open.addEventListener("click", () => {
-    closeWelcome();
-    openProjectPath(project.path);
-  });
-  const actions = createEl("div", { class: "library-actions" }, [
-    createEl(
-      "button",
-      {
-        class: "icon-btn",
-        title: "Editar etiquetas",
-        "aria-label": `Editar etiquetas de ${project.title || "Sin título"}`,
-      },
-      [svgIcon("tag")]
-    ),
-    createEl(
-      "button",
-      {
-        class: "icon-btn",
-        title: "Mover a carpeta",
-        "aria-label": `Mover ${project.title || "Sin título"} a una carpeta`,
-      },
-      [svgIcon("folder")]
-    ),
-  ]);
-  actions.children[0].addEventListener("click", () => editProjectTags(project, refresh));
-  actions.children[1].addEventListener("click", () => moveProjectDialog(project, folders, refresh));
-  row.append(open, actions);
-  return row;
-}
-
-function renderLibraryNode(node, container, closeWelcome, refresh, folders) {
-  const sortedFolders = [...node.folders.values()].sort((a, b) =>
-    a.name.localeCompare(b.name, "es", { sensitivity: "base" })
-  );
-  for (const folder of sortedFolders) {
-    const details = createEl("details", { class: "library-folder" });
-    details.open = true;
-    const summary = createEl("summary", {}, [
-      svgIcon("folder"),
-      createEl("span", { class: "library-folder-name", text: folder.name }),
-      createEl("span", {
-        class: "library-folder-count",
-        text: String(countLibraryProjects(folder)),
-      }),
-    ]);
-    const children = createEl("div", { class: "library-children" });
-    renderLibraryNode(folder, children, closeWelcome, refresh, folders);
-    details.append(summary, children);
-    container.append(details);
-  }
-  for (const project of node.projects) {
-    container.append(createLibraryRow(project, closeWelcome, refresh, folders));
-  }
-}
-
-function renderLibrary(container, projects, closeWelcome, refresh) {
-  container.innerHTML = "";
-  const head = createEl("div", { class: "library-head" }, [
-    createEl("div", {}, [
-      createEl("div", { class: "recent-title", text: "Biblioteca" }),
-      createEl("small", {
-        class: "library-count",
-        text: projects.length
-          ? `${projects.length} ${projects.length === 1 ? "proyecto" : "proyectos"}`
-          : "Sin proyectos guardados",
-      }),
-    ]),
-    createEl("div", { class: "library-head-actions" }, [
-      app.isTauri
-        ? createEl(
-            "button",
-            {
-              class: "btn ghost small",
-              onclick: () =>
-                openPath(app.boot.projectsDir).catch(() =>
-                  toast("No se pudo abrir la carpeta de proyectos.", { type: "warn" })
-                ),
-            },
-            [svgIcon("folder"), "Abrir carpeta"]
-          )
-        : null,
-    ]),
-  ]);
-  container.append(head);
-  const tree = createEl("div", { class: "library-tree" });
-  if (!projects.length) {
-    tree.append(
-      createEl("div", { class: "library-empty" }, [
-        svgIcon("folder"),
-        createEl("p", {
-          text: app.isTauri
-            ? "Todavía no hay proyectos en la biblioteca."
-            : "La biblioteca está disponible en la app de escritorio.",
-        }),
-        createEl("small", {
-          text: app.isTauri
-            ? "Los proyectos guardados se ordenan aquí por carpeta. También puedes moverlos y etiquetarlos."
-            : "En el navegador solo se conserva la sesión actual.",
-        }),
-        app.isTauri
-          ? createEl(
-              "button",
-              {
-                class: "btn primary small",
-                onclick: async () => {
-                  await saveProjectAs();
-                  await refresh();
-                },
-              },
-              "Guardar este documento en la biblioteca"
-            )
-          : null,
-      ])
-    );
-  } else {
-    const root = buildLibraryTree(projects);
-    sortLibraryTree(root);
-    renderLibraryNode(root, tree, closeWelcome, refresh, collectLibraryFolders(projects));
-  }
-  container.append(tree);
-}
-
-function renderExternalRecents(container, projects, recent, closeWelcome, refresh, folders) {
-  container.innerHTML = "";
-  const libraryPaths = new Set(projects.map((project) => project.path));
-  const items = recent.filter((item) => !libraryPaths.has(item.path));
-  if (!items.length) {
-    container.hidden = true;
-    return;
-  }
-  container.hidden = false;
-  container.append(createEl("div", { class: "recent-title", text: "Recientes fuera de la biblioteca" }));
-  for (const item of items.slice(0, 4)) {
-    const row = createEl("div", { class: "recent-row" });
-    const open = createEl("button", { class: "recent-open", type: "button" }, [
-      svgIcon("file"),
-      createEl("span", { class: "recent-copy" }, [
-        createEl("strong", { text: item.title || "Sin título" }),
-        createEl("small", { text: item.path }),
-      ]),
-      createEl("span", { class: "recent-time", text: formatRelative(item.openedAt) }),
-    ]);
-    open.addEventListener("click", () => {
-      closeWelcome();
-      openProjectPath(item.path);
-    });
-    row.append(open);
-    if (app.isTauri) {
-      const move = createEl(
-        "button",
-        {
-          class: "icon-btn",
-          title: "Mover a la biblioteca",
-          "aria-label": `Mover ${item.title || "el proyecto"} a la biblioteca`,
-        },
-        [svgIcon("folder")]
-      );
-      move.addEventListener("click", () => moveProjectDialog(item, folders, refresh));
-      row.append(createEl("div", { class: "library-actions" }, [move]));
-    }
-    container.append(row);
-  }
-}
-
-async function showWelcome() {
-  let modal = null;
-  const body = createEl("div", { class: "welcome-box" });
-  const grid = createEl("div", { class: "welcome-grid" });
-  const run = async (action) => {
-    modal?.close();
-    await action();
-  };
-  const addCard = (title, detail, icon, action) => {
-    const card = createEl("button", { class: "welcome-card", type: "button" }, [
-      createEl("span", { class: "welcome-icon" }, [svgIcon(icon)]),
-      createEl("span", { class: "welcome-copy" }, [
-        createEl("strong", { text: title }),
-        createEl("small", { text: detail }),
-      ]),
-    ]);
-    card.addEventListener("click", () => run(action));
-    grid.append(card);
-  };
-
-  addCard("Nuevo proyecto", "Empieza con una hoja en blanco.", "plus", newProject);
-  addCard("Abrir proyecto", "Retoma un archivo .papernotes.", "folder", async () => {
-    if (app.isTauri) await chooseProjectFile();
-    else await openProjectFlow();
-  });
-  addCard("Importar Markdown", "Trae un documento .md existente.", "file", openMarkdownFlow);
-  addCard("Cargar plantilla", "Usa el ejemplo de bienvenida.", "pen", loadExampleTemplate);
-  body.append(grid);
-
-  const libraryBox = createEl("div", { class: "library-box" });
-  const recentBox = createEl("div", { class: "welcome-recent" });
-  body.append(libraryBox, recentBox);
-
-  modal = showModal({
-    title: "Tinta Propia",
-    subtitle: "Elige cómo empezar. Este menú también está en Menú → Inicio.",
-    body,
-    wide: true,
-    actions: [
-      {
-        label: "Continuar con el documento actual",
-        kind: "primary",
-        onClick: (close) => close(),
-      },
-    ],
-  });
-
-  const closeWelcome = () => modal?.close();
-  const refresh = async () => {
-    const [projects, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
-    renderLibrary(libraryBox, projects, closeWelcome, refresh);
-    renderExternalRecents(
-      recentBox,
-      projects,
-      recent,
-      closeWelcome,
-      refresh,
-      collectLibraryFolders(projects)
-    );
-  };
-  await refresh();
 }
 
 async function openMarkdownFlow() {
@@ -2191,6 +1327,7 @@ async function openMarkdownFlow() {
   }
 }
 
+/** Guarda el proyecto actual; si no tiene ruta, delega en “Guardar como”. */
 async function saveProject() {
   if (!app.editor) return;
   if (!app.isTauri || !app.projectPath) return saveProjectAs();
@@ -2266,143 +1403,6 @@ async function saveProjectAs() {
   }
 }
 
-async function exportMarkdown() {
-  if (!app.editor) return;
-  const content = app.editor.getValue();
-  const name = `${slugify(app.title)}.md`;
-  try {
-    if (app.isTauri) {
-      const path = await saveFileDialog({
-        title: "Exportar Markdown",
-        defaultPath: name,
-        filters: [{ name: "Markdown", extensions: ["md"] }],
-      });
-      if (!path) return;
-      await invoke("save_text_file", { path, content });
-    } else {
-      const blob = new Blob([content], { type: "text/markdown" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = name;
-      anchor.click();
-      URL.revokeObjectURL(url);
-    }
-    toast("Markdown exportado. Las imágenes viven solo en el proyecto .papernotes.", {
-      title: "Listo",
-      timeout: 5500,
-    });
-  } catch (error) {
-    console.error(error);
-    toast("No se pudo exportar el Markdown.", { type: "error" });
-  }
-}
-
-/* ───────────────────────── PDF ───────────────────────── */
-
-async function exportPDF() {
-  if (!app.editor) return;
-  if (!app.pages.length) {
-    toast("El documento todavía no tiene páginas para exportar.", {
-      type: "warn",
-      title: "Nada que exportar",
-    });
-    return;
-  }
-  const missingDiagrams = extractMermaidBlocks(app.editor.getValue()).some(
-    (block) => !app.mermaidCache.has(block.code) && !app.mermaidErrors.has(block.code)
-  );
-  if (missingDiagrams || app.mermaidJobRunning || app.mermaidQueue.size) {
-    toast(
-      "Todavía hay diagramas Mermaid en preparación. Espera unos segundos y vuelve a exportar.",
-      { type: "warn", title: "Diagramas pendientes", timeout: 5000 }
-    );
-    return;
-  }
-  if (!app.isTauri) {
-    window.print();
-    return;
-  }
-  let progress = null;
-  try {
-    const path = await saveFileDialog({
-      title: "Exportar PDF",
-      defaultPath: `${slugify(app.title)}.pdf`,
-      filters: [{ name: "PDF", extensions: ["pdf"] }],
-    });
-    if (!path) return;
-    const cfg = app.result
-      ? { mmW: app.result.mmWidth, mmH: app.result.mmHeight }
-      : pageDimensions(app.settings);
-    const widthPt = (cfg.mmW / 25.4) * 72;
-    const heightPt = (cfg.mmH / 25.4) * 72;
-    const total = app.pages.length;
-    progress = showProgress(
-      "Exportando PDF",
-      "Cada página se rasteriza a alta calidad y Rust arma el documento final."
-    );
-    const scale = 1.5;
-    const pages = [];
-    for (let i = 0; i < total; i++) {
-      const source = app.pages[i];
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(source.width * scale));
-      canvas.height = Math.max(1, Math.round(source.height * scale));
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.91);
-      canvas.width = 0;
-      canvas.height = 0;
-      pages.push({
-        imageBase64: dataUrl,
-        widthPt,
-        heightPt,
-      });
-      progress.update((i + 1) / total, `Página ${i + 1} de ${total}`);
-      await yieldFrame();
-    }
-    progress.update(1, "Escribiendo el archivo…");
-    await invoke("export_pdf", {
-      request: { path, title: app.title, pages },
-    });
-    progress.close();
-    showExportSuccess(path);
-  } catch (error) {
-    console.error(error);
-    progress?.close();
-    toast(`No se pudo exportar el PDF: ${error}`, {
-      type: "error",
-      title: "Error al exportar",
-    });
-  }
-}
-
-function showExportSuccess(path) {
-  const body = createEl("div", { class: "export-success" }, [
-    createEl("div", { class: "export-success-icon" }, [svgIcon("check")]),
-    createEl("p", { text: "El PDF quedó guardado en:" }),
-    createEl("code", { text: path }),
-  ]);
-  showModal({
-    title: "PDF exportado",
-    body,
-    narrow: true,
-    actions: [
-      { label: "Cerrar", kind: "ghost", onClick: (close) => close() },
-      {
-        label: "Abrir PDF",
-        kind: "primary",
-        onClick: (close) => {
-          close();
-          openPath(path).catch(() => toast("No se pudo abrir el PDF.", { type: "warn" }));
-        },
-      },
-    ],
-  });
-}
-
 /* ───────────────────────── Externos ───────────────────────── */
 
 async function toggleFullscreen() {
@@ -2460,7 +1460,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.4.0"],
+    ["Versión", app.boot?.version || "0.5.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -2885,7 +1885,7 @@ function bindEditorEvents() {
     $("menuPopover").hidden = true;
     switch (button.dataset.action) {
       case "welcome":
-        await showWelcome();
+        await openLibrary();
         break;
       case "new":
         await newProject();
@@ -3074,6 +2074,13 @@ async function setupTauriCloseHandler() {
 
 /* ───────────────────────── Arranque ───────────────────────── */
 
+/**
+ * Arranque de la aplicación.
+ *
+ * Restaura la sesión, registra fuentes, crea el editor y enlaza los eventos.
+ * La pantalla de inicio se abre después del primer render para no bloquear el
+ * arranque con la lectura de la biblioteca.
+ */
 async function boot() {
   initMermaid();
   app.boot = await readBootstrap();
@@ -3136,7 +2143,7 @@ async function boot() {
   app.ready = true;
   setTimeout(() => $("bootScreen").classList.add("hidden"), 250);
   setTimeout(() => $("bootScreen").remove(), 900);
-  setTimeout(() => showWelcome(), 1000);
+  setTimeout(() => openLibrary(), 1000);
 
   if (app.bootError) {
     toast(
