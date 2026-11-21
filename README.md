@@ -342,13 +342,20 @@ Formatos admitidos:
 
 ```text
 [[IMG:1]]                                  Imagen normal
-[[IMG:1|width=60%|Pie de imagen]]          Ancho personalizado
-[[IMG:1|width=40%|side=right|Pie]]        Imagen a la derecha
+[[IMG:1|60%|Pie de imagen]]                Ancho personalizado
+[[IMG:1|right|Pie de imagen]]              Imagen a la derecha
 Texto que aparece al lado izquierdo.
 [[/IMG]]
 ```
 
-La imagen lateral ocupa el porcentaje indicado y el texto del bloque se coloca al otro lado. El pie es opcional.
+También se acepta el formato largo y flexible:
+
+```text
+[[img | 1 | izquierda | 40% | Pie]]
+[[IMG:1|width=50%|side=derecha|Pie]]
+```
+
+La imagen lateral ocupa el porcentaje indicado y el texto se coloca al otro lado. El cierre `[[/IMG]]` es opcional: si no está, se usa el párrafo inmediatamente siguiente como texto lateral. El pie es opcional.
 
 ## Mezcla de fuentes
 

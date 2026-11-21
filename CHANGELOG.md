@@ -6,6 +6,19 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-21
+
+### Added
+
+- Ayuda de sintaxis dentro del diálogo **Ajustar imagen**.
+- Formato abreviado `[[IMG:1|right|Pie]]` y variantes con espacios, minúsculas y nombres en español.
+
+### Changed
+
+- El ancho es opcional en el token; si la imagen va a un lado, se usa 45 % por defecto.
+- Si no se escribe `[[/IMG]]`, se usa el párrafo siguiente como texto lateral.
+- El editor genera tokens abreviados al ajustar una imagen.
+
 ## [0.9.0] - 2026-11-21
 
 ### Added

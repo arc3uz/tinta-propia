@@ -27,6 +27,7 @@ import {
   DEFAULT_SETTINGS,
   PRESETS,
   loadImage,
+  parseImageLine,
   parseImageTokenOptions,
 } from "./engine.js";
 import { invoke } from "@tauri-apps/api/core";
@@ -115,7 +116,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.9.0",
+    version: "0.9.1",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -974,15 +975,15 @@ function findCurrentImageBlock() {
   if (!line.trim()) {
     let probe = index - 1;
     while (probe >= 0 && !lines[probe].trim()) probe--;
-    if (probe >= 0 && /^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/.test(lines[probe].trim())) {
+    if (probe >= 0 && parseImageLine(lines[probe])) {
       index = probe;
       line = lines[probe];
     }
   }
-  const match = line.match(/^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/);
-  if (!match) return null;
-  const id = parseInt(match[1], 10);
-  const options = parseImageTokenOptions(match[2] || "");
+  const token = parseImageLine(line);
+  if (!token) return null;
+  const id = token.id;
+  const options = parseImageTokenOptions(token.raw);
   let endLine = index + 1;
   let sideText = "";
   let hasBlock = false;
@@ -1075,6 +1076,26 @@ function openImageOptionsModal() {
   side.id = "image-side";
   caption.id = "image-caption";
   toggleSide();
+  const help = createEl("details", { class: "image-token-help" }, [
+    createEl("summary", { text: "Ver sintaxis del token" }),
+    createEl("p", {}, [
+      createEl("code", { text: "[[IMG:1|right|Pie]]" }),
+      createEl("span", { text: " — imagen a la derecha, texto al lado." }),
+    ]),
+    createEl("p", {}, [
+      createEl("code", { text: "[[IMG:1|left|40%|Pie]]" }),
+      createEl("span", { text: " — imagen a la izquierda, 40 % de ancho." }),
+    ]),
+    createEl("p", {}, [
+      createEl("code", { text: "[[IMG:1|60%|Pie]]" }),
+      createEl("span", { text: " — imagen normal al 60 %." }),
+    ]),
+    createEl("p", {
+      class: "setting-hint small",
+      text: "El texto lateral va entre el token y [[/IMG]]. También se aceptan width= y side=.",
+    }),
+  ]);
+  body.append(help);
   const modal = showModal({
     title: "Ajustar imagen",
     subtitle: "Redimensiona o coloca texto al otro lado.",
@@ -1088,10 +1109,11 @@ function openImageOptionsModal() {
           const ratio = clamp(parseFloat(width.value) / 100, 0.2, 1);
           const imageSide = side.value;
           const cleanCaption = caption.value.trim().replace(/\|/g, "·");
-          const parts = [`width=${Math.round(ratio * 100)}%`];
-          if (imageSide !== "full") parts.push(`side=${imageSide}`);
-          if (cleanCaption) parts.push(cleanCaption);
-          const token = `[[IMG:${block.id}|${parts.join("|")}]]`;
+          const percent = `${Math.round(ratio * 100)}%`;
+          const token =
+            imageSide === "full"
+              ? `[[IMG:${block.id}|${percent}${cleanCaption ? `|${cleanCaption}` : ""}]]`
+              : `[[IMG:${block.id}|${imageSide}|${percent}${cleanCaption ? `|${cleanCaption}` : ""}]]`;
           const content =
             imageSide === "full"
               ? token
@@ -1552,7 +1574,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.9.0"],
+    ["Versión", app.boot?.version || "0.9.1"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],

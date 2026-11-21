@@ -767,8 +767,26 @@ function loadImage(src) {
 }
 
 /**
- * Interpreta las opciones de un token `[[IMG:id|width=50%|side=right|Caption]]`.
- * El formato antiguo `[[IMG:id|Caption]]` sigue funcionando.
+ * Reconoce un token de imagen, con colon o barras y sin distinguir mayúsculas.
+ * Ejemplos: `[[IMG:1]]`, `[[IMG:1|right|Pie]]`, `[[img | 1 | 60% | Pie]]`.
+ */
+export function parseImageLine(line) {
+  const match = String(line || "")
+    .trim()
+    .match(/^\[\[\s*img\s*[:|]\s*(\d+)(?:\s*\|([^\]]*))?\s*\]\]$/i);
+  if (!match) return null;
+  return { id: Number(match[1]), raw: match[2] || "" };
+}
+
+/**
+ * Interpreta las opciones de un token de imagen.
+ *
+ * Formatos admitidos:
+ *   [[IMG:1]]                         imagen normal
+ *   [[IMG:1|Pie]]                     imagen normal con pie
+ *   [[IMG:1|right|Pie]]               imagen a la derecha
+ *   [[IMG:1|left|40%|Pie]]            imagen a la izquierda, 40 %
+ *   [[IMG:1|width=60%|side=right]]    formato explícito
  */
 export function parseImageTokenOptions(raw = "") {
   let width = null;
@@ -778,8 +796,8 @@ export function parseImageTokenOptions(raw = "") {
   for (const part of parts) {
     const value = part.trim();
     if (!value) continue;
-    if (/^width\s*=/i.test(value)) {
-      const parsed = value.replace(/^width\s*=\s*/i, "").replace("%", "");
+    if (/^(width|ancho)\s*=/i.test(value)) {
+      const parsed = value.replace(/^(width|ancho)\s*=\s*/i, "").replace("%", "");
       const number = Number.parseFloat(parsed);
       if (Number.isFinite(number)) {
         width = number > 1 ? number / 100 : number;
@@ -787,13 +805,35 @@ export function parseImageTokenOptions(raw = "") {
       }
       continue;
     }
-    if (/^side\s*=/i.test(value)) {
-      const parsed = value.replace(/^side\s*=\s*/i, "").toLowerCase();
-      side = parsed === "left" || parsed === "right" ? parsed : "full";
+    if (/^(side|lado)\s*=/i.test(value)) {
+      const parsed = value.replace(/^(side|lado)\s*=\s*/i, "").toLowerCase();
+      side = parsed === "left" || parsed === "izquierda"
+        ? "left"
+        : parsed === "right" || parsed === "derecha"
+          ? "right"
+          : "full";
+      continue;
+    }
+    if (/^(left|right|full|center|izquierda|derecha|completo)$/i.test(value)) {
+      const parsed = value.toLowerCase();
+      side = parsed === "left" || parsed === "izquierda"
+        ? "left"
+        : parsed === "right" || parsed === "derecha"
+          ? "right"
+          : "full";
+      continue;
+    }
+    if (/^\d+(?:\.\d+)?%?$/.test(value) || /^\.\d+%?$/.test(value)) {
+      const number = Number.parseFloat(value.replace("%", ""));
+      if (Number.isFinite(number)) {
+        width = number > 1 ? number / 100 : number;
+        width = clamp(width, 0.15, 1);
+      }
       continue;
     }
     caption = caption ? `${caption} | ${value}` : value;
   }
+  if (width == null && (side === "left" || side === "right")) width = 0.45;
   return { width, side, caption };
 }
 
@@ -1493,18 +1533,38 @@ function layoutPass(markdown, { prepass, toc }) {
       continue;
     }
 
-    const imgMatch = line.trim().match(/^\[\[IMG:(\d+)(?:\|([^\]]+))?\]\]$/);
-    if (imgMatch) {
-      const options = parseImageTokenOptions(imgMatch[2] || "");
-      const entry = state.images.get(parseInt(imgMatch[1], 10));
+    const imageToken = parseImageLine(line);
+    if (imageToken) {
+      const options = parseImageTokenOptions(imageToken.raw);
+      const entry = state.images.get(imageToken.id);
       if (options.side === "left" || options.side === "right") {
         const textLines = [];
         let lj = li + 1;
+        let hasClosing = false;
         while (lj < srcLines.length && !/^\[\[\/IMG\]\]$/i.test(srcLines[lj].trim())) {
           textLines.push(srcLines[lj]);
           lj++;
         }
-        if (lj < srcLines.length) li = lj;
+        if (lj < srcLines.length) {
+          hasClosing = true;
+          li = lj;
+        } else {
+          // Sin cierre explícito, se usa el párrafo inmediato como texto lateral.
+          textLines.length = 0;
+          lj = li + 1;
+          while (
+            lj < srcLines.length &&
+            srcLines[lj].trim() &&
+            !/^(#{1,6}\s|\[\[|```|\|)/.test(srcLines[lj].trim())
+          ) {
+            textLines.push(srcLines[lj]);
+            lj++;
+          }
+          li = Math.max(li, lj - 1);
+        }
+        if (!hasClosing && !textLines.length) {
+          state.warnings.add("La imagen lateral no tiene texto; agrega líneas o [[/IMG]].");
+        }
         page = drawSideImage(page, entry, textLines, options, baseSize, lead);
       } else {
         page = drawImageEntry(page, entry, options.caption, options);
