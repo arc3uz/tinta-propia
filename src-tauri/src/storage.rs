@@ -346,4 +346,49 @@ mod tests {
         ]);
         assert_eq!(tags, vec!["examen".to_string(), "repaso".to_string()]);
     }
+
+    fn temp_dir(name: &str) -> PathBuf {
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        std::env::temp_dir().join(format!("tinta-propia-{name}-{stamp}"))
+    }
+
+    #[test]
+    fn reads_library_metadata_and_tags() {
+        let root = temp_dir("library");
+        let folder = root.join("Universidad").join("Cálculo");
+        std::fs::create_dir_all(&folder).unwrap();
+        let file = folder.join("Repaso.papernotes");
+        std::fs::write(
+            &file,
+            r#"{"title":"Repaso de derivadas","tags":["examen","repaso"],"updatedAt":1760000000000}"#,
+        )
+        .unwrap();
+        let mut projects = Vec::new();
+        collect_library_projects(&root, &root, &mut projects);
+        assert_eq!(projects.len(), 1);
+        assert_eq!(projects[0].title, "Repaso de derivadas");
+        assert_eq!(projects[0].folder, "Universidad/Cálculo");
+        assert_eq!(projects[0].tags, vec!["examen", "repaso"]);
+        assert_eq!(projects[0].updated_at, 1760000000);
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn writes_tags_inside_project_file() {
+        let root = temp_dir("tags");
+        std::fs::create_dir_all(&root).unwrap();
+        let file = root.join("Proyecto.papernotes");
+        std::fs::write(&file, r##"{"title":"Proyecto","document":"# Hola"}"##).unwrap();
+        set_project_tags(
+            file.to_str().unwrap(),
+            vec![" examen ".into(), "repaso".into(), "EXAMEN".into()],
+        )
+        .unwrap();
+        let value = read_json(&file).unwrap();
+        assert_eq!(value["tags"], serde_json::json!(["examen", "repaso"]));
+        std::fs::remove_dir_all(&root).unwrap();
+    }
 }
