@@ -6,6 +6,16 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-21
+
+### Performance
+
+- MathJax se carga solo cuando el documento contiene fórmulas.
+- Mermaid se importa dinámicamente y solo se descarga si hay diagramas.
+- Las fuentes ya cargadas no se vuelven a comprobar en cada compilación.
+- La caché de fórmulas tiene un límite para evitar crecer indefinidamente.
+- El paquete inicial de JavaScript se redujo alrededor de un 17 %.
+
 ## [0.9.1] - 2026-11-21
 
 ### Added

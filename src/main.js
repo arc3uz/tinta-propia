@@ -19,7 +19,7 @@ import "./styles.css";
 import iconUrl from "./assets/brand/icon.png";
 import exampleMd from "./assets/example.md?raw";
 import { MarkdownEditor } from "./editor.js";
-import { initMermaid, renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
+import { renderSingleMermaid, extractMermaidBlocks } from "./mermaid.js";
 import { prepareMath } from "./math.js";
 import {
   renderDocument,
@@ -116,7 +116,7 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.9.1",
+    version: "0.9.2",
     dataDir: null,
     documentsDir: null,
     projectsDir: null,
@@ -157,11 +157,14 @@ function readLocalSettings() {
   }
 }
 
+const loadedFonts = new Set();
+
 async function registerFont(name, base64) {
   const buffer = base64ToBuffer(base64);
   const face = new FontFace(name, buffer);
   await face.load();
   document.fonts.add(face);
+  loadedFonts.add(name);
   if (!app.fontList.some((font) => font.value === name)) {
     app.fontList.push({ value: name, label: name });
   }
@@ -174,12 +177,16 @@ async function ensureFont(family) {
     app.settings.mixFont2,
     app.settings.mixFont3,
   ].filter(Boolean);
+  const pending = [...new Set(families)].filter((name) => !loadedFonts.has(name));
   try {
     await Promise.all(
-      [...new Set(families)].flatMap((name) => [
-        document.fonts.load(`400 26px "${name}"`).catch(() => null),
-        document.fonts.load(`700 26px "${name}"`).catch(() => null),
-      ])
+      pending.map(async (name) => {
+        await Promise.all([
+          document.fonts.load(`400 26px "${name}"`).catch(() => null),
+          document.fonts.load(`700 26px "${name}"`).catch(() => null),
+        ]);
+        loadedFonts.add(name);
+      })
     );
     await document.fonts.ready;
   } catch {
@@ -1574,7 +1581,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.9.1"],
+    ["Versión", app.boot?.version || "0.9.2"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -2223,7 +2230,6 @@ async function setupTauriCloseHandler() {
  * arranque con la lectura de la biblioteca.
  */
 async function boot() {
-  initMermaid();
   app.boot = await readBootstrap();
   if (app.boot?.version) $("sbVersion").textContent = `v${app.boot.version}`;
   if (app.boot.customFonts?.length) {

@@ -11,28 +11,48 @@ import { INKS, loadImage } from "./engine.js";
  */
 
 const MATHJAX_TIMEOUT = 12000;
+const MAX_CACHE_ENTRIES = 400;
 let mathJaxPromise = null;
+let mathJaxLoader = null;
+
+/** Carga MathJax solo cuando hay fórmulas que renderizar. */
+function loadMathJax() {
+  if (window.MathJax?.tex2svg) return Promise.resolve();
+  if (mathJaxLoader) return mathJaxLoader;
+  mathJaxLoader = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/vendor/mathjax/tex-svg.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("No se pudo cargar MathJax."));
+    document.head.append(script);
+  });
+  return mathJaxLoader;
+}
 
 function waitForMathJax() {
   if (window.MathJax?.tex2svg && window.MathJax?.startup?.promise) {
     return window.MathJax.startup.promise;
   }
   if (mathJaxPromise) return mathJaxPromise;
-  mathJaxPromise = new Promise((resolve, reject) => {
-    const started = Date.now();
-    const tick = () => {
-      if (window.MathJax?.tex2svg && window.MathJax?.startup?.promise) {
-        window.MathJax.startup.promise.then(resolve).catch(reject);
-        return;
-      }
-      if (Date.now() - started > MATHJAX_TIMEOUT) {
-        reject(new Error("MathJax no terminó de cargar."));
-        return;
-      }
-      setTimeout(tick, 50);
-    };
-    tick();
-  });
+  mathJaxPromise = loadMathJax().then(
+    () =>
+      new Promise((resolve, reject) => {
+        const started = Date.now();
+        const tick = () => {
+          if (window.MathJax?.tex2svg && window.MathJax?.startup?.promise) {
+            window.MathJax.startup.promise.then(resolve).catch(reject);
+            return;
+          }
+          if (Date.now() - started > MATHJAX_TIMEOUT) {
+            reject(new Error("MathJax no terminó de cargar."));
+            return;
+          }
+          setTimeout(tick, 50);
+        };
+        tick();
+      })
+  );
   return mathJaxPromise;
 }
 
@@ -465,6 +485,11 @@ export async function prepareMath(markdown, settings, cache, onProgress) {
             ? await renderTypeset(job.code, job.display, settings)
             : await renderHandwritten(job.code, settings);
         cache.set(key, rendered);
+        while (cache.size > MAX_CACHE_ENTRIES) {
+          const oldest = cache.keys().next().value;
+          if (oldest === undefined) break;
+          cache.delete(oldest);
+        }
         break;
       } catch (error) {
         console.warn(`Fórmula (${mode}):`, job.code, error);

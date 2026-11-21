@@ -1,21 +1,32 @@
-import mermaid from "mermaid";
 import { loadImage } from "./engine.js";
 
-let initialized = false;
+let mermaidInstance = null;
+let mermaidPromise = null;
 
-export function initMermaid() {
-  if (initialized) return;
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: "redux-color",
-    securityLevel: "strict",
-    htmlLabels: false,
-    flowchart: { htmlLabels: false },
-    sequence: { useMaxWidth: false },
-    gantt: { useMaxWidth: false },
-    mindmap: { useMaxWidth: false },
-  });
-  initialized = true;
+async function ensureMermaid() {
+  if (mermaidInstance) return mermaidInstance;
+  if (!mermaidPromise) {
+    mermaidPromise = import("mermaid").then(({ default: mermaid }) => {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "redux-color",
+        securityLevel: "strict",
+        htmlLabels: false,
+        flowchart: { htmlLabels: false },
+        sequence: { useMaxWidth: false },
+        gantt: { useMaxWidth: false },
+        mindmap: { useMaxWidth: false },
+      });
+      mermaidInstance = mermaid;
+      return mermaid;
+    });
+  }
+  return mermaidPromise;
+}
+
+/** Carga Mermaid bajo demanda; no se descarga si el documento no tiene diagramas. */
+export async function initMermaid() {
+  return ensureMermaid();
 }
 
 export function extractMermaidBlocks(markdown) {
@@ -71,7 +82,7 @@ function svgToImage(svgText) {
 let renderSeq = 0;
 
 export async function renderSingleMermaid(code) {
-  initMermaid();
+  const mermaid = await ensureMermaid();
   const id = `tintapropia-mmd-${Date.now()}-${++renderSeq}`;
   const result = await mermaid.render(id, code);
   return svgToImage(result.svg);
@@ -84,7 +95,7 @@ export async function renderSingleMermaid(code) {
  * @param {(done:number,total:number,code:string)=>void} onProgress
  */
 export async function prepareMermaid(markdown, cache, onProgress) {
-  initMermaid();
+  await ensureMermaid();
   const blocks = extractMermaidBlocks(markdown);
   const unique = new Map();
   for (const block of blocks) {

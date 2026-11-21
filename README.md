@@ -22,7 +22,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Espaciado entre palabras y letras ajustable; tinta, márgenes, realismo, temblor, presión, inclinación y semilla.
 - Títulos rojos y cuerpo azul sobre papel blanco liso, sin cuadrícula ni margen rojo.
 - Diagramas Mermaid renderizados automáticamente en segundo plano.
-- Fórmulas LaTeX con MathJax y modo manuscrito simple.
+- Fórmulas LaTeX con MathJax y modo manuscrito simple; MathJax se carga solo cuando hace falta.
 - Paleta de fórmulas frecuentes con inserción rápida y atajo `Ctrl+Shift+F`.
 - Mezcla configurable de hasta cuatro fuentes manuscritas.
 - Diseño de hoja en una columna o en **3 columnas horizontales**.
