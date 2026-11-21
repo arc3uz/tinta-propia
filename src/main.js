@@ -2020,7 +2020,7 @@ function renderLibrary(container, projects, closeWelcome, refresh) {
   container.append(tree);
 }
 
-function renderExternalRecents(container, projects, recent, closeWelcome) {
+function renderExternalRecents(container, projects, recent, closeWelcome, refresh, folders) {
   container.innerHTML = "";
   const libraryPaths = new Set(projects.map((project) => project.path));
   const items = recent.filter((item) => !libraryPaths.has(item.path));
@@ -2045,6 +2045,19 @@ function renderExternalRecents(container, projects, recent, closeWelcome) {
       openProjectPath(item.path);
     });
     row.append(open);
+    if (app.isTauri) {
+      const move = createEl(
+        "button",
+        {
+          class: "icon-btn",
+          title: "Mover a la biblioteca",
+          "aria-label": `Mover ${item.title || "el proyecto"} a la biblioteca`,
+        },
+        [svgIcon("folder")]
+      );
+      move.addEventListener("click", () => moveProjectDialog(item, folders, refresh));
+      row.append(createEl("div", { class: "library-actions" }, [move]));
+    }
     container.append(row);
   }
 }
@@ -2100,7 +2113,14 @@ async function showWelcome() {
   const refresh = async () => {
     const [projects, recent] = await Promise.all([loadLibraryProjects(), loadRecentProjects()]);
     renderLibrary(libraryBox, projects, closeWelcome, refresh);
-    renderExternalRecents(recentBox, projects, recent, closeWelcome);
+    renderExternalRecents(
+      recentBox,
+      projects,
+      recent,
+      closeWelcome,
+      refresh,
+      collectLibraryFolders(projects)
+    );
   };
   await refresh();
 }
