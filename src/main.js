@@ -30,7 +30,6 @@ import {
 } from "./engine.js";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFileDialog, save as saveFileDialog } from "@tauri-apps/plugin-dialog";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import {
@@ -53,6 +52,7 @@ import {
   yieldFrame,
 } from "./core/utils.js";
 import { showModal, toast } from "./core/modal.js";
+import { openFolder } from "./core/system.js";
 import { openHomeView, showRecentProjects } from "./features/library.js";
 import { openFormulaModal } from "./features/formulas.js";
 import {
@@ -114,8 +114,9 @@ const BOOL_IDS = new Set(["markdown", "numberPages", "mathEnabled", "mixFonts", 
 
 function fallbackBootstrap() {
   return {
-    version: "0.6.0",
+    version: "0.6.1",
     dataDir: null,
+    documentsDir: null,
     projectsDir: null,
     fontsDir: null,
     autosave: null,
@@ -1298,7 +1299,7 @@ async function saveProject() {
   }
 }
 
-async function saveProjectAs() {
+async function saveProjectAs({ defaultDir = null } = {}) {
   if (!app.editor) return;
   const snapshot = buildProject();
   if (!app.isTauri) {
@@ -1319,10 +1320,10 @@ async function saveProjectAs() {
     return;
   }
   try {
-    const libraryDir = app.boot?.projectsDir;
-    const separator = libraryDir?.includes("\\") ? "\\" : "/";
-    const defaultPath = libraryDir
-      ? `${libraryDir.replace(/[\\/]$/, "")}${separator}${slugify(app.title)}.papernotes`
+    const baseDir = defaultDir || app.boot?.documentsDir || app.boot?.projectsDir;
+    const separator = baseDir?.includes("\\") ? "\\" : "/";
+    const defaultPath = baseDir
+      ? `${baseDir.replace(/[\\/]$/, "")}${separator}${slugify(app.title)}.papernotes`
       : `${slugify(app.title)}.papernotes`;
     const path = await saveFileDialog({
       title: "Guardar proyecto Tinta Propia",
@@ -1390,9 +1391,7 @@ function openDataDirectory() {
     });
     return;
   }
-  openPath(app.boot.dataDir).catch(() => {
-    toast("No se pudo abrir la carpeta de datos.", { type: "warn" });
-  });
+  openFolder(app.boot.dataDir);
 }
 
 function showAbout() {
@@ -1408,7 +1407,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.6.0"],
+    ["Versión", app.boot?.version || "0.6.1"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],

@@ -236,7 +236,7 @@ El repositorio incluye dos workflows:
 
 Puedes volver a la pantalla de inicio con **Menú → Inicio**. Allí la **Biblioteca** lista los proyectos guardados dentro de la carpeta de proyectos, ordenados por carpetas. Cada proyecto se puede abrir, etiquetar o mover a otra carpeta.
 
-Los proyectos nuevos se guardan por defecto dentro de la biblioteca; si guardas uno en otra ubicación, seguirá apareciendo en **Recientes fuera de la biblioteca** con un botón para moverlo a ella. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
+**Guardar como** usa el diálogo nativo del sistema y propone la carpeta de Documentos. Si guardas un proyecto fuera de la biblioteca, aparecerá en **Recientes fuera de la biblioteca** con un botón para moverlo a ella; el botón de la biblioteca vacía guarda directamente en la carpeta de proyectos. Las etiquetas se guardan dentro del propio `.papernotes`, así que viajan con el archivo.
 
 Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Menú → Cargar plantilla de ejemplo**. Para empezar completamente en blanco, usa **Menú → Nuevo proyecto**.
 

@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { app } from "../core/state.js";
 import {
   $,
@@ -9,6 +8,7 @@ import {
   svgIcon,
 } from "../core/utils.js";
 import { showModal, toast } from "../core/modal.js";
+import { openFolder } from "../core/system.js";
 
 /**
  * Biblioteca de proyectos y pantalla de inicio.
@@ -293,10 +293,7 @@ function renderLibrary(container, projects, closeLibrary, refresh, deps) {
             "button",
             {
               class: "btn ghost small",
-              onclick: () =>
-                openPath(app.boot.projectsDir).catch(() =>
-                  toast("No se pudo abrir la carpeta de proyectos.", { type: "warn" })
-                ),
+              onclick: () => openFolder(app.boot.projectsDir),
             },
             [svgIcon("folder"), "Abrir carpeta"]
           )
@@ -325,7 +322,7 @@ function renderLibrary(container, projects, closeLibrary, refresh, deps) {
               {
                 class: "btn primary small",
                 onclick: async () => {
-                  await deps.saveProjectAs();
+                  await deps.saveProjectAs({ defaultDir: app.boot.projectsDir });
                   await refresh();
                 },
               },

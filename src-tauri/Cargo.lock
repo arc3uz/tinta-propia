@@ -4279,10 +4279,11 @@ dependencies = [
 
 [[package]]
 name = "tinta-propia"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "base64 0.23.1",
  "lopdf",
+ "open",
  "serde",
  "serde_json",
  "tauri",

@@ -8,13 +8,14 @@ use serde::Serialize;
 use serde_json::Value;
 use std::path::Path;
 use storage::{LibraryProject, RecentProject};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Bootstrap {
     version: String,
     data_dir: String,
+    documents_dir: String,
     projects_dir: String,
     fonts_dir: String,
     autosave: Option<Value>,
@@ -26,9 +27,15 @@ struct Bootstrap {
 #[tauri::command]
 fn bootstrap(app: AppHandle) -> Result<Bootstrap, String> {
     let dir = storage::ensure_dirs(&app)?;
+    let documents_dir = app
+        .path()
+        .document_dir()
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_else(|_| dir.join("projects").to_string_lossy().to_string());
     Ok(Bootstrap {
         version: app.package_info().version.to_string(),
         data_dir: dir.to_string_lossy().to_string(),
+        documents_dir,
         projects_dir: dir.join("projects").to_string_lossy().to_string(),
         fonts_dir: dir.join("fonts").to_string_lossy().to_string(),
         autosave: storage::read_json(&dir.join("autosave.json")),
@@ -160,6 +167,15 @@ fn list_custom_fonts(app: AppHandle) -> Vec<FontPayload> {
 }
 
 #[tauri::command]
+fn open_folder(path: String) -> Result<(), String> {
+    let dir = Path::new(&path);
+    if !dir.is_dir() {
+        return Err("La carpeta no existe.".to_string());
+    }
+    open::that(dir).map_err(|e| format!("No se pudo abrir la carpeta: {e}"))
+}
+
+#[tauri::command]
 fn export_pdf(request: PdfExportRequest) -> Result<String, String> {
     pdf::export_pdf(request)
 }
@@ -196,6 +212,7 @@ pub fn run() {
             save_binary_file,
             import_font,
             list_custom_fonts,
+            open_folder,
             export_pdf
         ])
         .run(tauri::generate_context!())

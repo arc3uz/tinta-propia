@@ -6,6 +6,16 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-20
+
+### Changed
+
+- **Guardar como** abre el diálogo nativo en la carpeta estándar de Documentos; el botón de la biblioteca sigue guardando ahí cuando se usa desde Inicio.
+
+### Fixed
+
+- **Abrir carpeta** ahora usa un comando nativo de Rust y abre correctamente la carpeta de proyectos y la carpeta de datos.
+
 ## [0.6.0] - 2026-11-20
 
 ### Added
