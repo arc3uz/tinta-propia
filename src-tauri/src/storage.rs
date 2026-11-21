@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -77,15 +78,23 @@ pub struct LibraryProject {
     pub title: String,
     pub folder: String,
     pub tags: Vec<String>,
+    pub inherited_tags: Vec<String>,
     pub updated_at: u64,
     pub size: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LibraryFolder {
+    pub path: String,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LibrarySnapshot {
     pub projects: Vec<LibraryProject>,
-    pub folders: Vec<String>,
+    pub folders: Vec<LibraryFolder>,
 }
 
 fn project_folder(root: &Path, path: &Path) -> String {
@@ -191,6 +200,7 @@ fn collect_library_projects(root: &Path, dir: &Path, out: &mut Vec<LibraryProjec
             title,
             folder: project_folder(root, &path),
             tags,
+            inherited_tags: Vec::new(),
             updated_at,
             size: meta.len(),
         });
@@ -235,12 +245,93 @@ fn collect_library_folders(root: &Path, dir: &Path, out: &mut Vec<String>) {
     }
 }
 
+fn folder_tags_file(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(ensure_dirs(app)?
+        .join("projects")
+        .join(".tinta-folders.json"))
+}
+
+fn read_folder_tags(app: &AppHandle) -> BTreeMap<String, Vec<String>> {
+    let Ok(path) = folder_tags_file(app) else {
+        return BTreeMap::new();
+    };
+    let Some(value) = read_json(&path) else {
+        return BTreeMap::new();
+    };
+    value
+        .as_object()
+        .map(|object| {
+            object
+                .iter()
+                .filter_map(|(folder, tags)| {
+                    let tags = tags
+                        .as_array()?
+                        .iter()
+                        .filter_map(|tag| tag.as_str())
+                        .map(str::to_string)
+                        .collect::<Vec<_>>();
+                    Some((folder.clone(), clean_tags(&tags)))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn write_folder_tags(app: &AppHandle, tags: &BTreeMap<String, Vec<String>>) -> Result<(), String> {
+    let path = folder_tags_file(app)?;
+    write_json(&path, &serde_json::json!(tags))
+}
+
+fn inherited_tags(folder: &str, tags: &BTreeMap<String, Vec<String>>) -> Vec<String> {
+    let mut inherited = Vec::new();
+    let mut current = String::new();
+    for part in folder.split('/').filter(|part| !part.is_empty()) {
+        current = if current.is_empty() {
+            part.to_string()
+        } else {
+            format!("{current}/{part}")
+        };
+        if let Some(values) = tags.get(&current) {
+            inherited.extend(values.iter().cloned());
+        }
+    }
+    clean_tags(&inherited)
+}
+
+pub fn set_folder_tags(app: &AppHandle, folder: &str, tags: Vec<String>) -> Result<(), String> {
+    let relative = safe_relative_folder(folder)?;
+    if relative.as_os_str().is_empty() {
+        return Err("Elige una carpeta dentro de la biblioteca.".into());
+    }
+    let target = ensure_dirs(app)?.join("projects").join(&relative);
+    if !target.is_dir() {
+        return Err("La carpeta ya no existe.".into());
+    }
+    let normalized = relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/");
+    let mut all = read_folder_tags(app);
+    let tags = clean_tags(&tags);
+    if tags.is_empty() {
+        all.remove(&normalized);
+    } else {
+        all.insert(normalized, tags);
+    }
+    write_folder_tags(app, &all)
+}
+
 pub fn list_library(app: &AppHandle) -> Result<LibrarySnapshot, String> {
     let root = ensure_dirs(app)?.join("projects");
     let mut projects = Vec::new();
     let mut folders = Vec::new();
     collect_library_projects(&root, &root, &mut projects);
     collect_library_folders(&root, &root, &mut folders);
+    let folder_tags = read_folder_tags(app);
+    for project in &mut projects {
+        project.inherited_tags = inherited_tags(&project.folder, &folder_tags);
+    }
     projects.sort_by(|a, b| {
         a.folder
             .to_lowercase()
@@ -248,7 +339,16 @@ pub fn list_library(app: &AppHandle) -> Result<LibrarySnapshot, String> {
             .then_with(|| a.title.to_lowercase().cmp(&b.title.to_lowercase()))
     });
     folders.sort_by_key(|folder| folder.to_lowercase());
-    Ok(LibrarySnapshot { projects, folders })
+    Ok(LibrarySnapshot {
+        projects,
+        folders: folders
+            .into_iter()
+            .map(|path| LibraryFolder {
+                tags: folder_tags.get(&path).cloned().unwrap_or_default(),
+                path,
+            })
+            .collect(),
+    })
 }
 
 pub fn set_project_tags(path: &str, tags: Vec<String>) -> Result<(), String> {
@@ -326,6 +426,31 @@ pub fn rename_library_folder(
             .map_err(|e| format!("No se pudo actualizar la lista de recientes: {e}"))?;
         write_json(&data_dir.join("recent.json"), &value)?;
     }
+
+    let old_folder = old_relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/");
+    let new_folder = new_relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/");
+    let tags = read_folder_tags(app);
+    let mut renamed = BTreeMap::new();
+    for (folder, values) in tags {
+        if folder == old_folder {
+            renamed.insert(new_folder.clone(), values);
+        } else if let Some(rest) = folder.strip_prefix(&format!("{old_folder}/")) {
+            renamed.insert(format!("{new_folder}/{rest}"), values);
+        } else {
+            renamed.insert(folder, values);
+        }
+    }
+    if !renamed.is_empty() {
+        write_folder_tags(app, &renamed)?;
+    }
     Ok(())
 }
 
@@ -344,7 +469,18 @@ pub fn delete_library_folder(app: &AppHandle, folder: &str) -> Result<(), String
     if entries.next().is_some() {
         return Err("La carpeta no está vacía. Mueve o elimina sus proyectos primero.".into());
     }
-    fs::remove_dir(&target).map_err(|e| format!("No se pudo eliminar la carpeta: {e}"))
+    fs::remove_dir(&target).map_err(|e| format!("No se pudo eliminar la carpeta: {e}"))?;
+    let folder_name = relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/");
+    let tags = read_folder_tags(app);
+    let filtered = tags
+        .into_iter()
+        .filter(|(key, _)| key != &folder_name && !key.starts_with(&format!("{folder_name}/")))
+        .collect::<BTreeMap<_, _>>();
+    write_folder_tags(app, &filtered)
 }
 
 pub fn set_project_title(app: &AppHandle, path: &str, title: &str) -> Result<(), String> {
@@ -708,6 +844,18 @@ mod tests {
             .map(|duration| duration.as_nanos())
             .unwrap_or(0);
         std::env::temp_dir().join(format!("tinta-propia-{name}-{stamp}"))
+    }
+
+    #[test]
+    fn inherits_tags_from_parent_folders() {
+        let mut tags = BTreeMap::new();
+        tags.insert("Universidad".to_string(), vec!["facultad".to_string()]);
+        tags.insert(
+            "Universidad/Cálculo".to_string(),
+            vec!["matemática".to_string()],
+        );
+        let inherited = inherited_tags("Universidad/Cálculo/Semana 1", &tags);
+        assert_eq!(inherited, vec!["facultad", "matemática"]);
     }
 
     #[test]

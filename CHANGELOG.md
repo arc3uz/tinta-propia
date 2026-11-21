@@ -6,6 +6,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-21
+
+### Added
+
+- Etiquetas para carpetas de la biblioteca.
+- Herencia automática de etiquetas desde las carpetas padre hacia los proyectos.
+- Varias etiquetas por archivo desde el editor de etiquetas.
+- Acción de etiquetas en cada carpeta y chips visibles en el árbol.
+
+### Changed
+
+- El buscador y los filtros incluyen también las etiquetas heredadas.
+- Las etiquetas heredadas se muestran con un estilo distinto.
+
 ## [0.10.0] - 2026-11-21
 
 ### Added

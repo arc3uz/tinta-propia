@@ -2600,6 +2600,21 @@ details.advanced[open] summary::after {
   font-size: 9px;
   font-weight: 600;
 }
+.library-tag.inherited {
+  background: #fff8e8;
+  color: #8a5a12;
+  border: 1px dashed #e4c58f;
+}
+.library-folder-tags {
+  display: flex;
+  gap: 3px;
+  margin-left: 5px;
+  overflow: hidden;
+}
+.library-folder-tags .library-tag {
+  font-size: 8.5px;
+  padding: 0 5px;
+}
 .library-current {
   flex: 0 0 auto;
   padding: 1px 6px;

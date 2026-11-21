@@ -127,6 +127,11 @@ fn delete_library_folder(app: AppHandle, folder: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn set_folder_tags(app: AppHandle, folder: String, tags: Vec<String>) -> Result<(), String> {
+    storage::set_folder_tags(&app, &folder, tags)
+}
+
+#[tauri::command]
 fn set_project_title(app: AppHandle, path: String, title: String) -> Result<(), String> {
     storage::set_project_title(&app, &path, &title)
 }
@@ -254,6 +259,7 @@ pub fn run() {
             create_library_folder,
             rename_library_folder,
             delete_library_folder,
+            set_folder_tags,
             set_project_tags,
             set_project_title,
             duplicate_project,

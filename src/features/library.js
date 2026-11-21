@@ -52,10 +52,13 @@ function countLibraryProjects(folder) {
   return count;
 }
 
-function uniqueTags(projects) {
+function uniqueTags(projects, folders = []) {
   const tags = new Set();
   for (const project of projects) {
-    for (const tag of project.tags || []) tags.add(tag);
+    for (const tag of [...(project.tags || []), ...(project.inheritedTags || [])]) tags.add(tag);
+  }
+  for (const folder of folders) {
+    for (const tag of folder.tags || []) tags.add(tag);
   }
   return [...tags].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 }
@@ -79,27 +82,39 @@ function replaceFolderPrefix(path, oldFolder, newFolder) {
 /** Convierte la lista plana de proyectos y carpetas en un árbol. */
 function buildLibraryTree(projects, folders) {
   const root = { folders: new Map(), projects: [] };
-  const ensureNode = (parts) => {
+  const ensureNode = (parts, tags = []) => {
     let node = root;
     let path = "";
     for (const part of parts) {
       path = path ? `${path}/${part}` : part;
       if (!node.folders.has(part)) {
-        node.folders.set(part, { name: part, path, folders: new Map(), projects: [] });
+        node.folders.set(part, {
+          name: part,
+          path,
+          tags: [],
+          folders: new Map(),
+          projects: [],
+        });
       }
       node = node.folders.get(part);
     }
+    if (tags.length) node.tags = tags;
     return node;
   };
   for (const folder of folders) {
-    const parts = String(folder || "").split("/").filter(Boolean);
-    if (parts.length) ensureNode(parts);
+    const folderPath = typeof folder === "string" ? folder : folder.path;
+    const parts = String(folderPath || "").split("/").filter(Boolean);
+    if (parts.length) ensureNode(parts, folder.tags || []);
   }
   for (const project of projects) {
     const parts = project.folder ? project.folder.split("/").filter(Boolean) : [];
     ensureNode(parts).projects.push(project);
   }
   return root;
+}
+
+function folderOptions(folders) {
+  return folders.map((folder) => (typeof folder === "string" ? folder : folder.path));
 }
 
 function sortLibraryTree(node, sort) {
@@ -121,7 +136,10 @@ function pruneLibraryTree(node) {
 
 function projectMatches(project) {
   const query = libraryQuery.trim().toLowerCase();
-  const tags = Array.isArray(project.tags) ? project.tags : [];
+  const tags = [
+    ...(Array.isArray(project.tags) ? project.tags : []),
+    ...(Array.isArray(project.inheritedTags) ? project.inheritedTags : []),
+  ];
   if (libraryTag && !tags.some((tag) => tag.toLowerCase() === libraryTag.toLowerCase())) {
     return false;
   }
@@ -130,6 +148,57 @@ function projectMatches(project) {
     (project.title || "").toLowerCase().includes(query) ||
     tags.some((tag) => tag.toLowerCase().includes(query))
   );
+}
+
+function editFolderTags(folder, refresh) {
+  if (!app.isTauri) return;
+  const input = createEl("input", { type: "text", placeholder: "examen, repaso" });
+  input.value = Array.isArray(folder.tags) ? folder.tags.join(", ") : "";
+  const body = createEl("div", {}, [
+    createEl("label", {
+      class: "select-label",
+      for: "folder-tags-input",
+      text: "Etiquetas de la carpeta",
+    }),
+    input,
+    createEl("p", {
+      class: "setting-hint small",
+      text: "Los proyectos dentro de esta carpeta heredan automáticamente estas etiquetas.",
+    }),
+  ]);
+  input.id = "folder-tags-input";
+  const saveTags = async (close) => {
+    const tags = [
+      ...new Set(
+        input.value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      ),
+    ].slice(0, 12);
+    try {
+      await invoke("set_folder_tags", { folder: folder.path, tags });
+      close();
+      toast("Etiquetas de carpeta actualizadas.", { title: "Biblioteca" });
+      await refresh();
+    } catch (error) {
+      console.error(error);
+      toast(`No se pudieron guardar las etiquetas: ${error}`, { type: "error" });
+    }
+  };
+  const modal = showModal({
+    title: "Etiquetas de carpeta",
+    subtitle: folder.path,
+    body,
+    narrow: true,
+    actions: [
+      { label: "Cancelar", kind: "ghost", onClick: (close) => close() },
+      { label: "Guardar etiquetas", kind: "primary", onClick: (close) => saveTags(close) },
+    ],
+  });
+  submitOnEnter(input, () => saveTags(modal.close));
+  setTimeout(() => input.focus(), 40);
+  return modal;
 }
 
 function editProjectTags(project, refresh, deps) {
@@ -343,7 +412,9 @@ function showProjectActions(project, folders, refresh, deps) {
 
 function createLibraryRow(project, closeLibrary, refresh, folders, deps) {
   const row = createEl("div", { class: "library-project", title: project.path });
-  const tags = Array.isArray(project.tags) ? project.tags : [];
+  const ownTags = Array.isArray(project.tags) ? project.tags : [];
+  const inheritedTags = Array.isArray(project.inheritedTags) ? project.inheritedTags : [];
+  const tags = [...new Set([...ownTags, ...inheritedTags])];
   const updated = project.updatedAt ? formatRelative(project.updatedAt) : "";
   const meta = [updated, project.size ? formatBytes(project.size) : ""].filter(Boolean).join(" · ");
   const open = createEl("button", { class: "library-open", type: "button" }, [
@@ -354,7 +425,13 @@ function createLibraryRow(project, closeLibrary, refresh, folders, deps) {
         ? createEl(
             "span",
             { class: "library-tags" },
-            tags.map((tag) => createEl("span", { class: "library-tag", text: tag }))
+            tags.map((tag) =>
+              createEl("span", {
+                class: `library-tag${inheritedTags.includes(tag) && !ownTags.includes(tag) ? " inherited" : ""}`,
+                title: inheritedTags.includes(tag) && !ownTags.includes(tag) ? "Heredada de la carpeta" : "",
+                text: tag,
+              })
+            )
           )
         : null,
       createEl("small", { text: meta }),
@@ -692,6 +769,7 @@ function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps
     details.open = true;
     const count = countLibraryProjects(folder);
     const folderActions = createEl("span", { class: "library-folder-actions" }, [
+      folderAction("tag", "Etiquetas de carpeta", () => editFolderTags(folder, refresh)),
       folderAction("pen", "Renombrar carpeta", () => renameFolder(folder, refresh, deps)),
       count === 0
         ? folderAction("trash", "Eliminar carpeta", () => deleteFolder(folder, refresh))
@@ -700,6 +778,13 @@ function renderLibraryNode(node, container, closeLibrary, refresh, folders, deps
     const summary = createEl("summary", {}, [
       svgIcon("folder"),
       createEl("span", { class: "library-folder-name", text: folder.name }),
+      folder.tags?.length
+        ? createEl(
+            "span",
+            { class: "library-folder-tags" },
+            folder.tags.map((tag) => createEl("span", { class: "library-tag", text: tag }))
+          )
+        : null,
       createEl("span", { class: "library-folder-count", text: String(count) }),
       folderActions,
     ]);
@@ -723,7 +808,8 @@ function renderLibrary(container, snapshot, closeLibrary, refresh, deps) {
   container.innerHTML = "";
   const projects = snapshot.projects || [];
   const folders = snapshot.folders || [];
-  const tags = uniqueTags(projects);
+  const tags = uniqueTags(projects, folders);
+  const folderValues = folderOptions(folders);
   const countLabel = createEl("small", { class: "library-count" });
   const tree = createEl("div", { class: "library-tree" });
   tree.addEventListener("contextmenu", (event) => {
@@ -836,7 +922,7 @@ function renderLibrary(container, snapshot, closeLibrary, refresh, deps) {
       );
       return;
     }
-    renderLibraryNode(root, tree, closeLibrary, refresh, folders, deps);
+    renderLibraryNode(root, tree, closeLibrary, refresh, folderValues, deps);
   };
 
   const updateTagChips = () => {
@@ -984,7 +1070,7 @@ async function renderHome() {
       recent,
       closeHomeView,
       refresh,
-      library.folders,
+      folderOptions(library.folders),
       homeDeps
     );
     columns.classList.toggle("with-recents", !recentPanel.hidden);
