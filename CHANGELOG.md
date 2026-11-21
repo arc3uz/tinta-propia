@@ -6,6 +6,13 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-21
+
+### Fixed
+
+- Las carpetas vacías de la biblioteca se muestran aunque todavía no haya proyectos guardados.
+- Crear una carpeta desde la interfaz actualiza el árbol inmediatamente.
+
 ## [0.7.0] - 2026-11-20
 
 ### Added

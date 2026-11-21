@@ -610,7 +610,8 @@ function renderLibrary(container, snapshot, closeLibrary, refresh, deps) {
       emptyState();
       return;
     }
-    if (!filtered.length) {
+    const filtering = Boolean(libraryQuery.trim() || libraryTag);
+    if (filtering && !filtered.length) {
       tree.append(
         createEl("div", { class: "library-empty" }, [
           svgIcon("file"),

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Tinta Propia",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "identifier": "io.github.arc3uz.tintapropia",
   "build": {
     "beforeDevCommand": "npm run dev",
