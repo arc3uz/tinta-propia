@@ -245,16 +245,32 @@ function showModal({
       subtitle ? createEl("p", { text: subtitle }) : null,
     ]),
     dismissible
-      ? createEl("button", { class: "icon-btn", title: "Cerrar", onclick: () => close() }, [
-          svgIcon("x"),
-        ])
+      ? createEl(
+          "button",
+          {
+            class: "icon-btn",
+            title: "Cerrar",
+            "aria-label": "Cerrar",
+            onclick: () => close(),
+          },
+          [svgIcon("x")]
+        )
       : null,
   ]);
   const bodyEl = createEl("div", { class: "modal-body" });
   if (body instanceof Node) bodyEl.append(body);
   else if (typeof body === "string") bodyEl.innerHTML = body;
   const foot = createEl("div", { class: "modal-foot" });
-  const modal = createEl("div", { class: `modal${narrow ? " narrow" : ""}` }, [head, bodyEl]);
+  const modal = createEl(
+    "div",
+    {
+      class: `modal${narrow ? " narrow" : ""}`,
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": title,
+    },
+    [head, bodyEl]
+  );
   if (actions.length) {
     for (const action of actions) {
       foot.append(
@@ -357,7 +373,7 @@ function showProgress(title, subtitle) {
 
 function fallbackBootstrap() {
   return {
-    version: "0.2.1",
+    version: "0.3.0",
     dataDir: null,
     projectsDir: null,
     fontsDir: null,
@@ -436,10 +452,18 @@ function computeImageSeq(assets) {
   return max;
 }
 
+function normalizeSettings(settings) {
+  const next = { ...settings };
+  for (const key of ["font", "mixFont1", "mixFont2", "mixFont3"]) {
+    if (next[key] === "MiLetra IIC2531") next[key] = "MiLetra";
+  }
+  return next;
+}
+
 function applyPayloadToState(payload) {
   app.title = payload.title || "Sin título";
   app.projectPath = payload.path || null;
-  app.settings = { ...DEFAULT_SETTINGS, ...(payload.settings || {}) };
+  app.settings = normalizeSettings({ ...DEFAULT_SETTINGS, ...(payload.settings || {}) });
   app.assets = payload.assets || {};
   app.imageSeq = Math.max(
     Number(payload.imageSeq) || 0,
@@ -615,6 +639,7 @@ function syncSettingsControls() {
     }
   }
   populateFontSelect(app.settings.font);
+  updateConditionalControls();
   const custom = $("preset").querySelector('option[value="custom"]');
   if (custom) {
     const ignore = new Set(["pageSize", "layout", "columnGuides", "markdown", "numberPages"]);
@@ -659,6 +684,31 @@ function syncRangeOutputs() {
     const output = $(`${id}Val`);
     if (input && output) output.textContent = formatter(parseFloat(input.value) || 0);
   }
+  syncChips();
+}
+
+function syncChips() {
+  const wordSpacing = parseFloat($("wordSpacing")?.value);
+  document.querySelectorAll("[data-word]").forEach((button) => {
+    const active = Math.abs(wordSpacing - parseFloat(button.dataset.word)) < 0.001;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  const size = Math.round(parseFloat($("size")?.value));
+  document.querySelectorAll("[data-size]").forEach((button) => {
+    const active = size === parseInt(button.dataset.size, 10);
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function updateConditionalControls() {
+  const mixOptions = $("mixOptions");
+  if (mixOptions) mixOptions.hidden = !$("mixFonts")?.checked;
+  const columnOptions = $("columnOptions");
+  if (columnOptions) columnOptions.hidden = $("layout")?.value !== "columns";
+  const mathOptions = $("mathOptions");
+  if (mathOptions) mathOptions.hidden = !$("mathEnabled")?.checked;
 }
 
 function updatePrintStyle() {
@@ -680,6 +730,7 @@ function updatePrintStyle() {
 function onSettingsChanged(event) {
   const id = event?.target?.id;
   app.settings = readSettingsFromControls();
+  updateConditionalControls();
   syncRangeOutputs();
   if (id === "pageSize" || id === "layout") updatePrintStyle();
   updatePreviewMeta();
@@ -1656,6 +1707,75 @@ async function showRecentProjects() {
   });
 }
 
+async function showWelcome() {
+  let modal = null;
+  const body = createEl("div", { class: "welcome-box" });
+  const grid = createEl("div", { class: "welcome-grid" });
+  const run = async (action) => {
+    modal?.close();
+    await action();
+  };
+  const addCard = (title, detail, icon, action) => {
+    const card = createEl("button", { class: "welcome-card", type: "button" }, [
+      createEl("span", { class: "welcome-icon" }, [svgIcon(icon)]),
+      createEl("span", { class: "welcome-copy" }, [
+        createEl("strong", { text: title }),
+        createEl("small", { text: detail }),
+      ]),
+    ]);
+    card.addEventListener("click", () => run(action));
+    grid.append(card);
+  };
+
+  addCard("Nuevo proyecto", "Empieza con una hoja en blanco.", "plus", newProject);
+  addCard("Abrir proyecto", "Retoma un archivo .papernotes.", "folder", async () => {
+    if (app.isTauri) await chooseProjectFile();
+    else await openProjectFlow();
+  });
+  addCard("Importar Markdown", "Trae un documento .md existente.", "file", openMarkdownFlow);
+  addCard("Cargar plantilla", "Usa el ejemplo de bienvenida.", "pen", loadExampleTemplate);
+  body.append(grid);
+
+  let recent = [];
+  try {
+    recent = app.isTauri ? await invoke("recent_projects") : app.boot?.recent || [];
+  } catch {
+    recent = app.boot?.recent || [];
+  }
+  if (recent.length) {
+    const recentBox = createEl("div", { class: "welcome-recent" });
+    recentBox.append(createEl("div", { class: "recent-title", text: "Abrir reciente" }));
+    for (const item of recent.slice(0, 4)) {
+      const row = createEl("div", { class: "recent-row" });
+      const open = createEl("button", { class: "recent-open", type: "button" }, [
+        svgIcon("file"),
+        createEl("span", { class: "recent-copy" }, [
+          createEl("strong", { text: item.title || "Sin título" }),
+          createEl("small", { text: item.path }),
+        ]),
+        createEl("span", { class: "recent-time", text: formatRelative(item.openedAt) }),
+      ]);
+      open.addEventListener("click", () => run(() => openProjectPath(item.path)));
+      row.append(open);
+      recentBox.append(row);
+    }
+    body.append(recentBox);
+  }
+
+  modal = showModal({
+    title: "Tinta Propia",
+    subtitle: "Elige cómo empezar. Este menú también está en Menú → Inicio.",
+    body,
+    actions: [
+      {
+        label: "Continuar con el documento actual",
+        kind: "primary",
+        onClick: (close) => close(),
+      },
+    ],
+  });
+}
+
 async function openMarkdownFlow() {
   const ok = await confirmDiscard();
   if (!ok) return;
@@ -1956,7 +2076,7 @@ function showAbout() {
   ]);
   const grid = createEl("dl", { class: "about-grid" });
   const rows = [
-    ["Versión", app.boot?.version || "0.2.1"],
+    ["Versión", app.boot?.version || "0.3.0"],
     ["Motor", "Canvas 2D + Mermaid 12 + MathJax 3"],
     ["Plataforma", app.isTauri ? "Tauri 2 + Rust" : "Navegador"],
     ["Datos", app.boot?.dataDir || "Almacenamiento local del navegador"],
@@ -2183,6 +2303,13 @@ function bindSettingsEvents() {
       onSettingsChanged({ target: $("wordSpacing") });
     });
   });
+  document.querySelectorAll("[data-size]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $("size").value = button.dataset.size;
+      syncRangeOutputs();
+      onSettingsChanged({ target: $("size") });
+    });
+  });
   $("regenSeed").addEventListener("click", () => {
     $("seed").value = String(Math.floor(Math.random() * 999999));
     onSettingsChanged({ target: $("seed") });
@@ -2372,6 +2499,9 @@ function bindEditorEvents() {
     if (!button) return;
     $("menuPopover").hidden = true;
     switch (button.dataset.action) {
+      case "welcome":
+        await showWelcome();
+        break;
       case "new":
         await newProject();
         break;
@@ -2578,7 +2708,7 @@ async function boot() {
     app.initialDocument = exampleMd;
     app.title = "Plantilla de ejemplo";
     app.projectPath = null;
-    app.settings = { ...DEFAULT_SETTINGS, ...(globalSettings || {}) };
+    app.settings = normalizeSettings({ ...DEFAULT_SETTINGS, ...(globalSettings || {}) });
     app.assets = {};
     app.imageSeq = 0;
   }
@@ -2616,13 +2746,8 @@ async function boot() {
   app.ready = true;
   setTimeout(() => $("bootScreen").classList.add("hidden"), 250);
   setTimeout(() => $("bootScreen").remove(), 900);
+  setTimeout(() => showWelcome(), 1000);
 
-  if (app.restored) {
-    toast("Recuperamos tu última sesión de trabajo.", {
-      title: "Sesión restaurada",
-      type: "info",
-    });
-  }
   if (app.bootError) {
     toast(
       "La app abrió en modo navegador porque no pudo comunicarse con Rust. Tus archivos siguen a salvo.",

@@ -62,6 +62,12 @@ button {
   cursor: pointer;
 }
 
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid rgba(29, 111, 220, 0.55);
+  outline-offset: 2px;
+}
+
 svg {
   width: 16px;
   height: 16px;
@@ -1312,6 +1318,7 @@ input[type="range"] {
 }
 .chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
 }
@@ -1327,6 +1334,15 @@ input[type="range"] {
 .chip:hover {
   background: #eaf2fb;
   border-color: #c6d8ea;
+}
+.chip.is-active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.chip.is-active:hover {
+  background: var(--navy-2);
+  border-color: var(--navy-2);
 }
 .btn {
   border: 1px solid transparent;
@@ -1945,6 +1961,70 @@ details.advanced[open] summary::after {
   font-variant-numeric: tabular-nums;
 }
 
+.welcome-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.welcome-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.welcome-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  text-align: left;
+  transition: background 0.14s, border-color 0.14s;
+}
+.welcome-card:hover {
+  background: #f4f9ff;
+  border-color: #c6d8ea;
+}
+.welcome-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #eef4fb;
+  color: var(--navy);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.welcome-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.welcome-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.welcome-copy strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--navy);
+}
+.welcome-copy small {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.welcome-recent {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 12px;
+}
+@media (max-width: 560px) {
+  .welcome-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .recent-box {
   min-height: 120px;
 }
@@ -2093,4 +2173,10 @@ details.advanced[open] summary::after {
 }
 .mix-fonts select {
   margin-bottom: 6px;
+}
+
+#mixOptions[hidden],
+#columnOptions[hidden],
+#mathOptions[hidden] {
+  display: none;
 }

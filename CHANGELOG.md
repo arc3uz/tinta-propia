@@ -6,6 +6,26 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-20
+
+### Added
+
+- Pantalla de inicio con accesos a proyecto nuevo, abrir, importar Markdown, plantilla y proyectos recientes.
+- Acceso **Menú → Inicio** para volver a la pantalla de inicio.
+- Tamaños de letra desde 12 px, con atajos de 12, 14, 16, 20 y 26 px.
+- Estado visual en los botones de tamaño y espaciado seleccionados.
+
+### Changed
+
+- El menú de ajustes muestra solo las opciones que corresponden al modo activo: mezcla de fuentes, columnas y fórmulas.
+- El tamaño de letra se movió junto a la fuente manuscrita, en **Letra y tinta**.
+- Los nombres visibles son genéricos: **Apunte clásico**, **Mi letra (calibrada)** y **Aplicar apunte**.
+- Se unificó el anillo de foco de botones y controles desplegables.
+
+### Removed
+
+- Las referencias al código de curso en la interfaz y en la documentación de usuario.
+
 ## [0.2.1] - 2026-11-20
 
 ### Added
@@ -73,7 +93,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - Aplicación de escritorio **Tinta Propia** con Tauri 2 y Rust.
 - Interfaz tipo Overleaf: archivos y esquema, editor Markdown y vista previa paginada.
-- Motor de manuscrito sobre canvas con fuente calibrada `MiLetra IIC2531`.
+- Motor de manuscrito sobre canvas con fuente calibrada incluida.
 - Tamaños de hoja A4, Carta, Legal, A5 y Oficio.
 - Ajustes de espaciado entre palabras y letras, tinta, márgenes, realismo y semilla.
 - Diagramas Mermaid con render en segundo plano y tema `redux-color`.

@@ -75,6 +75,7 @@
             <span>Menú</span>
           </button>
           <div class="menu-popover" id="menuPopover" hidden>
+            <button data-action="welcome"><span>Inicio</span></button>
             <button data-action="new"><span>Nuevo proyecto</span><kbd>Ctrl N</kbd></button>
             <button data-action="example"><span>Cargar plantilla de ejemplo</span></button>
             <button data-action="open"><span>Abrir proyecto…</span><kbd>Ctrl O</kbd></button>
@@ -105,9 +106,9 @@
           <div class="sidebar-head">
             <span class="sidebar-label">Proyecto</span>
             <div class="sidebar-actions">
-              <button class="mini-btn" id="newBtn" title="Nuevo proyecto"><svg><use href="#i-plus"></use></svg></button>
-              <button class="mini-btn" id="openBtn" title="Abrir proyecto"><svg><use href="#i-folder"></use></svg></button>
-              <button class="mini-btn" id="saveBtn" title="Guardar"><svg><use href="#i-save"></use></svg></button>
+              <button class="mini-btn" id="newBtn" title="Nuevo proyecto" aria-label="Nuevo proyecto"><svg><use href="#i-plus"></use></svg></button>
+              <button class="mini-btn" id="openBtn" title="Abrir proyecto" aria-label="Abrir proyecto"><svg><use href="#i-folder"></use></svg></button>
+              <button class="mini-btn" id="saveBtn" title="Guardar" aria-label="Guardar"><svg><use href="#i-save"></use></svg></button>
             </div>
           </div>
           <div class="sidebar-section files-section">
@@ -178,20 +179,20 @@
         <section class="preview-pane" id="previewPane">
           <div class="preview-toolbar">
             <div class="pt-group">
-              <button class="tool-btn" id="zoomOut" title="Reducir"><svg><use href="#i-zoom-out"></use></svg></button>
+              <button class="tool-btn" id="zoomOut" title="Reducir" aria-label="Reducir zoom"><svg><use href="#i-zoom-out"></use></svg></button>
               <button class="zoom-label" id="zoomLabel" title="Restablecer zoom">100 %</button>
-              <button class="tool-btn" id="zoomIn" title="Ampliar"><svg><use href="#i-zoom-in"></use></svg></button>
-              <button class="tool-btn" id="fitWidth" title="Ajustar al ancho"><svg><use href="#i-fit"></use></svg></button>
+              <button class="tool-btn" id="zoomIn" title="Ampliar" aria-label="Ampliar zoom"><svg><use href="#i-zoom-in"></use></svg></button>
+              <button class="tool-btn" id="fitWidth" title="Ajustar al ancho" aria-label="Ajustar al ancho"><svg><use href="#i-fit"></use></svg></button>
             </div>
             <div class="pt-group page-nav">
-              <button class="tool-btn" id="prevPage" title="Página anterior"><svg><use href="#i-chevron-left"></use></svg></button>
+              <button class="tool-btn" id="prevPage" title="Página anterior" aria-label="Página anterior"><svg><use href="#i-chevron-left"></use></svg></button>
               <span class="page-indicator"><input id="pageInput" value="1" inputmode="numeric" aria-label="Página actual" /> <span id="pageTotal">/ 0</span></span>
-              <button class="tool-btn" id="nextPage" title="Página siguiente"><svg><use href="#i-chevron-right"></use></svg></button>
+              <button class="tool-btn" id="nextPage" title="Página siguiente" aria-label="Página siguiente"><svg><use href="#i-chevron-right"></use></svg></button>
             </div>
             <div class="pt-group">
               <span class="preview-size" id="previewSize">A4</span>
-              <button class="tool-btn" id="exportPdfBtn2" title="Exportar PDF"><svg><use href="#i-download"></use></svg></button>
-              <button class="tool-btn" id="previewSettingsBtn" title="Ajustes del manuscrito"><svg><use href="#i-settings"></use></svg></button>
+              <button class="tool-btn" id="exportPdfBtn2" title="Exportar PDF" aria-label="Exportar PDF"><svg><use href="#i-download"></use></svg></button>
+              <button class="tool-btn" id="previewSettingsBtn" title="Ajustes del manuscrito" aria-label="Abrir ajustes del manuscrito"><svg><use href="#i-settings"></use></svg></button>
             </div>
           </div>
           <div class="preview-scroll" id="previewScroll">
@@ -227,7 +228,7 @@
         <div class="sb-right">
           <span id="sbCompile">Motor listo</span>
           <span class="sb-sep"></span>
-          <span id="sbVersion">v0.2.1</span>
+          <span id="sbVersion">v0.3.0</span>
         </div>
       </footer>
     </div>
@@ -238,7 +239,7 @@
           <h2>Ajustes del manuscrito</h2>
           <p>Se guardan con el proyecto.</p>
         </div>
-        <button class="icon-btn" id="drawerClose" title="Cerrar"><svg><use href="#i-x"></use></svg></button>
+        <button class="icon-btn" id="drawerClose" title="Cerrar" aria-label="Cerrar ajustes"><svg><use href="#i-x"></use></svg></button>
       </div>
       <div class="drawer-scroll">
         <section class="setting-group">
@@ -276,11 +277,13 @@
             <option value="normal" selected>Una columna (vertical)</option>
             <option value="columns">3 columnas (horizontal)</option>
           </select>
-          <label class="checkline">
-            <input id="columnGuides" type="checkbox" checked />
-            <span><b>Mostrar guías de columna</b><small>Líneas punteadas entre las tres columnas.</small></span>
-          </label>
-          <p class="setting-hint small">Con 3 columnas la hoja se usa horizontal y el texto fluye de la columna 1 a la 3. No es un folleto plegado: es la hoja completa dividida en columnas.</p>
+          <div id="columnOptions" hidden>
+            <label class="checkline">
+              <input id="columnGuides" type="checkbox" checked />
+              <span><b>Mostrar guías de columna</b><small>Líneas punteadas entre las tres columnas.</small></span>
+            </label>
+            <p class="setting-hint small">Con 3 columnas la hoja se usa horizontal y el texto fluye de la columna 1 a la 3. No es un folleto plegado: es la hoja completa dividida en columnas.</p>
+          </div>
           <div class="two-col">
             <div>
               <label class="select-label" for="margins">Márgenes</label>
@@ -314,7 +317,7 @@
           <h3><span class="setting-dot"></span>Letra y tinta</h3>
           <label class="select-label" for="preset">Estilo general</label>
           <select id="preset">
-            <option value="apunte" selected>Apunte IIC2531</option>
+            <option value="apunte" selected>Apunte clásico</option>
             <option value="natural">Natural</option>
             <option value="rapido">Rápido</option>
             <option value="cuidadoso">Cuidadoso</option>
@@ -324,27 +327,43 @@
           <select id="font"></select>
           <button class="btn ghost small full" id="importFontBtn">Importar una fuente TTF / OTF</button>
 
+          <div class="control-row spaced">
+            <label for="size">Tamaño de letra</label>
+            <output id="sizeVal">26 px</output>
+          </div>
+          <input id="size" type="range" min="12" max="38" step="1" value="26" />
+          <div class="chips" role="group" aria-label="Tamaños de letra rápidos">
+            <button type="button" class="chip" data-size="12">12</button>
+            <button type="button" class="chip" data-size="14">14</button>
+            <button type="button" class="chip" data-size="16">16</button>
+            <button type="button" class="chip" data-size="20">20</button>
+            <button type="button" class="chip" data-size="26">26</button>
+          </div>
+          <p class="setting-hint small">12–20 px para hojas densas; 24–30 px para apuntes de una columna.</p>
+
           <label class="checkline spaced">
             <input id="mixFonts" type="checkbox" />
             <span><b>Mezclar manos</b><small>Alterna entre tu letra y 3 fuentes secundarias.</small></span>
           </label>
-          <label class="select-label" for="mixMode">Estilo de mezcla</label>
-          <select id="mixMode">
-            <option value="section" selected>Por sección (recomendado)</option>
-            <option value="line">Por línea</option>
-          </select>
-          <div class="control-row spaced">
-            <label for="mixStrength">Intensidad</label>
-            <output id="mixStrengthVal">30 %</output>
-          </div>
-          <input id="mixStrength" type="range" min="0" max="100" step="1" value="30" />
-          <div class="mix-fonts">
-            <label for="mixFont1">Mano 2</label>
-            <select id="mixFont1"></select>
-            <label for="mixFont2">Mano 3</label>
-            <select id="mixFont2"></select>
-            <label for="mixFont3">Mano 4</label>
-            <select id="mixFont3"></select>
+          <div id="mixOptions" hidden>
+            <label class="select-label" for="mixMode">Estilo de mezcla</label>
+            <select id="mixMode">
+              <option value="section" selected>Por sección (recomendado)</option>
+              <option value="line">Por línea</option>
+            </select>
+            <div class="control-row spaced">
+              <label for="mixStrength">Intensidad</label>
+              <output id="mixStrengthVal">30 %</output>
+            </div>
+            <input id="mixStrength" type="range" min="0" max="100" step="1" value="30" />
+            <div class="mix-fonts">
+              <label class="select-label" for="mixFont1">Mano 2</label>
+              <select id="mixFont1"></select>
+              <label class="select-label" for="mixFont2">Mano 3</label>
+              <select id="mixFont2"></select>
+              <label class="select-label" for="mixFont3">Mano 4</label>
+              <select id="mixFont3"></select>
+            </div>
           </div>
 
           <div class="two-col spaced">
@@ -368,11 +387,6 @@
               </select>
             </div>
           </div>
-          <div class="control-row spaced">
-            <label for="size">Tamaño</label>
-            <output id="sizeVal">26 px</output>
-          </div>
-          <input id="size" type="range" min="20" max="38" step="1" value="26" />
         </section>
 
         <section class="setting-group">
@@ -437,24 +451,26 @@
             <input id="mathEnabled" type="checkbox" checked />
             <span><b>Renderizar fórmulas</b><small>Convierte $...$ y $$...$$ en fórmulas dibujadas.</small></span>
           </label>
-          <label class="select-label" for="mathMode">Modo de fórmulas</label>
-          <select id="mathMode">
-            <option value="auto" selected>Mixto: en línea manuscrita, bloque tipográfica</option>
-            <option value="typeset">Tipográficas: MathJax para todo</option>
-            <option value="handwritten">Manuscritas: conversión simple con tu letra</option>
-          </select>
-          <p class="setting-hint small">En línea: <code>$x^2$</code>. Bloque: <code>$$ ... $$</code>. En modo manuscrito se admiten fracciones y símbolos simples.</p>
+          <div id="mathOptions" hidden>
+            <label class="select-label" for="mathMode">Modo de fórmulas</label>
+            <select id="mathMode">
+              <option value="auto" selected>Mixto: en línea manuscrita, bloque tipográfica</option>
+              <option value="typeset">Tipográficas: MathJax para todo</option>
+              <option value="handwritten">Manuscritas: conversión simple con tu letra</option>
+            </select>
+            <p class="setting-hint small">En línea: <code>$x^2$</code>. Bloque: <code>$$ ... $$</code>. En modo manuscrito se admiten fracciones y símbolos simples.</p>
+          </div>
         </section>
       </div>
       <div class="drawer-foot">
         <button class="btn ghost" id="resetSettings">Restablecer</button>
-        <button class="btn primary" id="applyApunte">Apunte IIC2531</button>
+        <button class="btn primary" id="applyApunte">Aplicar apunte</button>
       </div>
     </aside>
 
     <div class="overlay" id="drawerOverlay" hidden></div>
     <div class="modal-root" id="modalRoot"></div>
-    <div class="toast-root" id="toastRoot"></div>
+    <div class="toast-root" id="toastRoot" aria-live="polite"></div>
     <input id="hiddenImageInput" type="file" accept="image/*" multiple hidden />
     <input id="hiddenFontInput" type="file" accept=".ttf,.otf,.woff,.woff2" hidden />
 

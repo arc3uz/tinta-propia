@@ -260,7 +260,7 @@ async function renderHandwritten(tex, settings) {
   if (!text) throw new Error("La fórmula quedó vacía.");
 
   const fontPx = 80;
-  const family = settings.font || "MiLetra IIC2531";
+  const family = settings.font || "MiLetra";
   try {
     await document.fonts.load(`400 ${fontPx}px "${family}"`);
   } catch {

@@ -16,7 +16,7 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 ## Características
 
 - Editor Markdown con resaltado de sintaxis, números de línea, plegado, búsqueda e historial.
-- Vista previa real del manuscrito sobre canvas, con la fuente `MiLetra IIC2531`.
+- Vista previa real del manuscrito sobre canvas, con la fuente calibrada incluida.
 - Tamaños de hoja A4, Carta, Legal, A5 y Oficio.
 - Márgenes: **Ninguno (0,1 cm)**, muy pequeños, pequeños, normales y amplios.
 - Espaciado entre palabras y letras ajustable; tinta, márgenes, realismo, temblor, presión, inclinación y semilla.
@@ -32,6 +32,8 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Exportación PDF nativa con Rust y exportación PNG por página.
 - Importación de Markdown y de fuentes TTF/OTF/WOFF.
 - Proyectos recientes y carpeta de datos accesible desde el menú.
+- Pantalla de inicio con accesos rápidos y proyectos recientes.
+- Tamaño de letra ajustable entre 12 y 38 px, con atajos de 12, 14, 16, 20 y 26 px.
 - Atajos de teclado y cierre con `Ctrl+Q` guardando la sesión.
 
 ## Requisitos
@@ -222,12 +224,15 @@ El repositorio incluye dos workflows:
 
 ## Uso rápido
 
-1. Abre la app: la primera vez carga una plantilla simple de ejemplo.
-2. Edita la plantilla, empieza con **Menú → Nuevo proyecto** o importa un `.md` desde **Menú → Importar Markdown**.
-3. Ajusta el estilo en **Ajustes del manuscrito**; el espaciado entre palabras está arriba.
-4. Pulsa **Recompilar** o `Ctrl+Enter`.
-5. Guarda con `Ctrl+S` como proyecto `.papernotes`.
-6. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
+1. Abre la app: aparece la pantalla de inicio para continuar la sesión, crear un proyecto, abrir uno reciente o importar un Markdown.
+2. La primera vez carga una plantilla simple de ejemplo.
+3. Edita la plantilla, empieza con **Menú → Nuevo proyecto** o importa un `.md` desde **Menú → Importar Markdown**.
+4. Ajusta el estilo en **Ajustes del manuscrito**; el espaciado entre palabras está arriba y el tamaño de letra en **Letra y tinta**.
+5. Pulsa **Recompilar** o `Ctrl+Enter`.
+6. Guarda con `Ctrl+S` como proyecto `.papernotes`.
+7. Exporta el PDF con **PDF** o `Ctrl+Shift+E`.
+
+Puedes volver a la pantalla de inicio con **Menú → Inicio**.
 
 Si ya tienes una sesión anterior y quieres empezar con la plantilla, usa **Menú → Cargar plantilla de ejemplo**. Para empezar completamente en blanco, usa **Menú → Nuevo proyecto**.
 
@@ -279,7 +284,7 @@ Un `.papernotes` es un JSON legible:
   "title": "Mi manuscrito",
   "path": "/ruta/al/proyecto.papernotes",
   "document": "# Título\n\nTexto…",
-  "settings": { "font": "MiLetra IIC2531", "pageSize": "a4" },
+  "settings": { "font": "<fuente elegida>", "pageSize": "a4" },
   "assets": {
     "1": { "data": "data:image/png;base64,…", "displayW": 800 }
   },
@@ -318,7 +323,7 @@ Limitaciones: por ahora las fórmulas dentro de tablas y bloques de código se m
 
 En **Ajustes → Letra y tinta** se puede activar **Mezclar manos**:
 
-- Fuente principal (por ejemplo, `MiLetra IIC2531`).
+- Fuente principal (por ejemplo, la fuente calibrada).
 - Hasta tres fuentes secundarias.
 - Intensidad de 0 a 100 %.
 - Mezcla **por sección** (recomendada) o **por línea**.
@@ -417,7 +422,7 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 
 - Aplicación: Tinta Propia.
 - Motor de manuscrito y fuentes originales: herramienta `Manuscrito Papernotes.html`.
-- Fuente calibrada: `MiLetra IIC2531.ttf`.
+- Fuente calibrada incluida en `src/assets/fonts/`.
 - Mermaid 12.3.0, MathJax 3.2.2, CodeMirror 6, Tauri 2 y Rust.
 
 ## Documentación

@@ -35,7 +35,7 @@ export const INKS = {
 };
 
 export const FONTS = [
-  { value: "MiLetra IIC2531", label: "Mi letra IIC2531 (calibrada)" },
+  { value: "MiLetra", label: "Mi letra (calibrada)" },
   { value: "Papernotes", label: "Papel clásico (incluida)" },
   { value: "Caveat", label: "Caveat" },
   { value: "Patrick Hand", label: "Patrick Hand" },
@@ -54,7 +54,7 @@ export const FONTS = [
 ];
 
 export const DEFAULT_SETTINGS = {
-  font: "MiLetra IIC2531",
+  font: "MiLetra",
   size: 26,
   leading: 1.32,
   tracking: 1.05,
@@ -87,7 +87,7 @@ export const DEFAULT_SETTINGS = {
 
 export const PRESETS = {
   apunte: {
-    label: "Apunte IIC2531",
+    label: "Apunte clásico",
     values: {
       ...DEFAULT_SETTINGS,
     },
@@ -186,8 +186,8 @@ const state = {
   pendingMermaid: new Set(),
   mathImages: new Map(),
   mathTokens: new Map(),
-  currentFont: "MiLetra IIC2531",
-  sectionFont: "MiLetra IIC2531",
+  currentFont: "MiLetra",
+  sectionFont: "MiLetra",
   sectionIndex: 0,
   lineIndex: 0,
   mathTokenSeq: 0,
@@ -415,7 +415,7 @@ function newPage() {
 
 function font(size, bold) {
   const family = state.currentFont || state.settings.font || "Papernotes";
-  const weight = bold && family !== "MiLetra IIC2531" ? "700 " : "400 ";
+  const weight = bold && family !== "MiLetra" ? "700 " : "400 ";
   return `${weight}${size}px "${family}", cursive`;
 }
 
@@ -527,7 +527,7 @@ function measureLine(ctx, text, size, bold) {
     width += mathWordWidth(ctx, words[i], size);
     if (i < words.length - 1) {
       const gap = Math.max(ctx.measureText(" ").width, size * 0.38) * wordSpacing();
-      width += family === "MiLetra IIC2531" ? gap : gap * tracking() * 1.45;
+      width += family === "MiLetra" ? gap : gap * tracking() * 1.45;
     }
   }
   return width;
@@ -652,7 +652,7 @@ function drawWordLine(ctx, text, x, y, size, bold, lineColor) {
 function drawLine(ctx, text, x, y, size, bold) {
   const family = state.currentFont || state.settings.font || "Papernotes";
   const lineColor = bold ? headingColor() : inkColor();
-  if (family === "MiLetra IIC2531" || MATH_TOKEN_RE.test(text)) {
+  if (family === "MiLetra" || MATH_TOKEN_RE.test(text)) {
     drawWordLine(ctx, text, x, y, size, bold, lineColor);
     return;
   }
@@ -1456,7 +1456,7 @@ function layoutPass(markdown, { prepass, toc }) {
           state.sectionIndex += 1;
           state.sectionFont = pickMixedFont(1000 + state.sectionIndex);
         }
-        const custom = state.settings.font === "MiLetra IIC2531";
+        const custom = state.settings.font === "MiLetra";
         if (custom) {
           size =
             baseSize *

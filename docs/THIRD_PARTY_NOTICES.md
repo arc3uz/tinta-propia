@@ -35,7 +35,7 @@ Las siguientes fuentes provienen de Google Fonts y se distribuyen bajo la **SIL 
 - Grape Nuts
 - Mynerve
 
-Las fuentes **MiLetra IIC2531** y **Papernotes** fueron incluidas por el autor del proyecto. Si quieres reutilizarlas fuera de Tinta Propia, consulta su origen y licencia.
+La fuente calibrada del proyecto y **Papernotes** fueron incluidas por el autor. Si quieres reutilizarlas fuera de Tinta Propia, consulta su origen y licencia.
 
 ## Logo
 

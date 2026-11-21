@@ -97,8 +97,8 @@
   font-display: block;
 }
 @font-face {
-  font-family: "MiLetra IIC2531";
-  src: url("./assets/fonts/MiLetra-IIC2531.ttf") format("truetype");
+  font-family: "MiLetra";
+  src: url("./assets/fonts/MiLetra.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: block;
