@@ -6,6 +6,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+### Changed
+
+- La fuente calibrada `MiLetra` pasa a llamarse `MiLetraArc`; los proyectos y ajustes antiguos se migran automáticamente.
+
 ## [0.11.1] - 2026-11-25
 
 ### Added
