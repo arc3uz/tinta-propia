@@ -284,7 +284,7 @@ Los archivos adjuntos a un GitHub Release no consumen la cuota de artefactos de 
 - Los diálogos nativos, la carpeta de datos y la apertura de archivos usan Tauri; las rutas se resuelven con `Path` de Rust.
 - El PDF se arma en Rust con imágenes JPEG embebidas, sin depender del motor de impresión del sistema.
 - La exportación se bloquea mientras hay diagramas Mermaid en preparación para no generar un PDF con recuadros pendientes.
-- La fuente calibrada y las 16 fuentes incluidas viajan dentro del frontend; no se descargan desde internet.
+- La fuente calibrada, Papernotes y las 14 fuentes de Google Fonts viajan dentro del frontend; no se descargan desde internet.
 - En Windows, el instalador incluye WebView2 offline. En Linux, el AppImage incluye las bibliotecas que necesita; el `.deb` y el `.rpm` usan WebKitGTK del sistema. En macOS se usa el WKWebView del sistema.
 - Los atajos aceptan `Cmd` en macOS además de `Ctrl`. La interfaz sigue mostrando `Ctrl` en los textos.
 - El DMG de macOS se firma en modo ad-hoc, pero no se notariza. Gatekeeper puede pedir confirmación al abrirlo por primera vez.
