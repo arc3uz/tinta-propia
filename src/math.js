@@ -446,11 +446,38 @@ async function renderHandwritten(tex, settings) {
   };
 }
 
-function resolveMode(display, settings) {
+/**
+ * Comandos que el conversor manuscrito (texToUnicode + renderHandwritten)
+ * sabe resolver. Si una fórmula en línea usa un comando fuera de esta lista,
+ * se renderiza con MathJax para no imprimir "\mathbf", "\boldsymbol",
+ * "\begin{pmatrix}"… como texto literal.
+ */
+const HANDWRITTEN_SAFE_COMMANDS = new Set([
+  ...Object.keys(SYMBOLS),
+  "frac", "dfrac", "tfrac",
+  "sqrt", "text", "mathrm", "operatorname",
+  "left", "right", "big", "Big", "bigl", "bigr", "quad", "qquad",
+]);
+
+export function canRenderHandwritten(tex) {
+  const source = String(tex || "");
+  const command = /\\([A-Za-z]+)/g;
+  let match;
+  while ((match = command.exec(source)) !== null) {
+    if (!HANDWRITTEN_SAFE_COMMANDS.has(match[1])) return false;
+  }
+  return true;
+}
+
+function resolveMode(display, settings, code) {
   const mode = settings.mathMode || "auto";
   if (mode === "typeset") return "typeset";
   if (mode === "handwritten") return "handwritten";
-  return display ? "typeset" : "handwritten";
+  if (display) return "typeset";
+  // Modo "auto"/Mixto: las fórmulas en línea se escriben con tu letra, salvo
+  // que usen comandos que el conversor manual no soporta (matrices, \mathbf,
+  // \mathbb…); en ese caso se usa MathJax para que no salgan como texto literal.
+  return canRenderHandwritten(code) ? "handwritten" : "typeset";
 }
 
 export async function prepareMath(markdown, settings, cache, onProgress) {
@@ -468,7 +495,7 @@ export async function prepareMath(markdown, settings, cache, onProgress) {
   let done = 0;
 
   for (const job of jobs) {
-    const requested = resolveMode(job.display, settings);
+    const requested = resolveMode(job.display, settings, job.code);
     const modes = [requested];
     if (requested === "typeset") modes.push("handwritten");
     let rendered = null;

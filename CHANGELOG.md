@@ -10,6 +10,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 - La fuente calibrada `MiLetra` pasa a llamarse `MiLetraArc`; los proyectos y ajustes antiguos se migran automáticamente.
 
+### Fixed
+
+- Las fórmulas en línea con comandos que el modo manuscrito no soporta se renderizan con MathJax en vez de mostrar el comando literal.
+
 ## [0.11.1] - 2026-11-25
 
 ### Added
