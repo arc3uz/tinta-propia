@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Plantilla simple — Tinta Propia</title>
+<style>
+  @page { size: A4; margin: 10mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "DejaVu Sans", "Noto Sans", sans-serif;
+    color: #172033;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 190mm;
+    height: 277mm;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1.4px solid #172033;
+    padding-bottom: 1.6mm;
+    margin-bottom: 3.2mm;
+    flex: 0 0 auto;
+  }
+  .brand {
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+  .page-number { font-size: 7.5pt; color: #667085; font-variant-numeric: tabular-nums; }
+  h1 { margin: 0 0 2mm; font-size: 25pt; line-height: 1.08; letter-spacing: -0.02em; }
+  h2 {
+    margin: 0 0 1.8mm;
+    font-size: 10pt;
+    color: #12355b;
+    letter-spacing: .01em;
+  }
+  .kicker {
+    font-size: 7.5pt;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #667085;
+    margin-bottom: 2mm;
+  }
+  .lead { margin: 0 0 4mm; font-size: 10pt; line-height: 1.5; color: #475467; }
+  .cols { display: grid; grid-template-columns: 1.08fr .92fr; gap: 7mm; }
+  .box {
+    border: 1px solid #d6dee8;
+    border-radius: 2.5mm;
+    padding: 4mm 4.5mm;
+    background: #f8fafc;
+  }
+  .box h2 { margin-bottom: 2mm; }
+  .box ol, .box ul { margin: 0; padding-left: 5mm; font-size: 8.8pt; line-height: 1.5; }
+  .box li { margin-bottom: 1.6mm; }
+  .box li:last-child { margin-bottom: 0; }
+  .box strong { color: #12355b; }
+  .muted { color: #667085; }
+  .contents {
+    margin-top: 5mm;
+    border-top: 1px solid #d6dee8;
+    padding-top: 3mm;
+    font-size: 8.2pt;
+    line-height: 1.55;
+    color: #475467;
+  }
+  .contents b { color: #172033; }
+  .calibration {
+    border: 1px dashed #98a2b3;
+    border-radius: 2.5mm;
+    padding: 4mm 4.5mm;
+    margin-top: 4mm;
+  }
+  .calibration p { margin: 0 0 2mm; font-size: 8.5pt; color: #667085; }
+  .phrase { font-size: 11pt; line-height: 1.7; color: #344054; }
+  .rule { height: 8mm; border-bottom: 1px solid #cbd5e1; }
+  .rule + .rule { margin-top: 1mm; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: 25mm;
+    gap: 2.2mm;
+  }
+  .cell {
+    position: relative;
+    border: 1px solid #cbd5e1;
+    border-radius: 1.6mm;
+    overflow: hidden;
+    background: #fff;
+    break-inside: avoid;
+  }
+  .cell::after {
+    content: "";
+    position: absolute;
+    left: 2.2mm;
+    right: 2.2mm;
+    bottom: 6mm;
+    border-top: 1px dotted #d0d5dd;
+  }
+  .cell.blank { background: #fcfcfd; }
+  .glyph {
+    position: absolute;
+    top: 1.4mm;
+    left: 2mm;
+    font-family: "DejaVu Sans", "Noto Sans Math", "Noto Sans Symbols 2", sans-serif;
+    font-size: 10pt;
+    line-height: 1;
+    color: #344054;
+  }
+  .code {
+    position: absolute;
+    right: 1.6mm;
+    bottom: 1.1mm;
+    font-size: 4.9pt;
+    color: #98a2b3;
+    font-family: "DejaVu Sans Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .group { margin-bottom: 2.4mm; }
+  .group:last-child { margin-bottom: 0; }
+  .group h2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: .7px solid #e4e7ec;
+    padding-bottom: .8mm;
+    margin-bottom: 1.6mm;
+  }
+  .group h2 span { font-size: 7pt; font-weight: 400; color: #98a2b3; }
+  .footnote { margin-top: auto; padding-top: 3mm; font-size: 7.3pt; color: #98a2b3; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .lines { margin-top: 2mm; }
+  .line { height: 9mm; border-bottom: 1px solid #cbd5e1; }
+  .line + .line { margin-top: 1.2mm; }
+  .note { font-size: 8.2pt; line-height: 1.5; color: #475467; }
+  .note strong { color: #12355b; }
+  .badge {
+    display: inline-block;
+    padding: .6mm 2.2mm;
+    border-radius: 99px;
+    background: #eef4fb;
+    color: #12355b;
+    font-size: 7.5pt;
+    font-weight: 700;
+  }
+  .scan {
+    margin-top: 4mm;
+    border: 1px solid #d6dee8;
+    border-radius: 2.5mm;
+    padding: 3.5mm 4.5mm;
+    background: #fff;
+  }
+  .scan h2 { margin-bottom: 1.8mm; }
+  .scan ul { margin: 0; padding-left: 5mm; font-size: 8.3pt; line-height: 1.5; color: #475467; }
+  .scan li { margin-bottom: 1mm; }
+  .scan li:last-child { margin-bottom: 0; }
+</style>
+<style>
+  .simple-grid { grid-template-columns: repeat(9, 1fr); grid-auto-rows: 22mm; gap: 1.8mm; }
+  .simple-grid.compact { grid-auto-rows: 20mm; gap: 1.5mm; }
+  .simple-grid .glyph { font-size: 11pt; }
+  .simple-grid .cell::after { bottom: 5.5mm; }
+  .simple .group { margin-bottom: 1.8mm; }
+  .simple .group h2 { margin-bottom: 1.3mm; }
+  .simple .page-head { margin-bottom: 2.6mm; }
+  .simple .footnote { padding-top: 2mm; }
+  .simple .calibration { margin-top: 3mm; }
+  .simple .contents { margin-top: 3mm; }
+  .simple .lead { margin-bottom: 3mm; }
+</style>
+</head>
+<body>
+
+<section class="page simple">
+  <div class="page-head"><span class="brand">Tinta Propia · Plantilla simple</span><span class="page-number">1 / 3</span></div>
+  <div class="kicker">Fuentes manuscritas</div>
+  <h1>Plantilla simple</h1>
+  <p class="lead">Una hoja para escribir las letras, números y signos que usas a diario. Si necesitas símbolos matemáticos avanzados, usa la plantilla completa.</p>
+  <div class="note" style="margin-bottom:4mm"><strong>Nombre:</strong> ______________________________ &nbsp;&nbsp; <strong>Fecha:</strong> __________________</div>
+
+  <div class="cols">
+    <div class="box">
+      <h2>Qué incluye</h2>
+      <ul>
+        <li>Minúsculas, mayúsculas, ñ y acentos del español.</li>
+        <li>Números y puntuación básica.</li>
+        <li>Operadores y signos matemáticos frecuentes.</li>
+        <li>Casillas libres para tus propios signos.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h2>Cómo llenarla</h2>
+      <ol>
+        <li>Imprime en A4 al 100 %, sin ajustar.</li>
+        <li>Usa el mismo bolígrafo y tu letra habitual.</li>
+        <li>Escribe un carácter por casilla, sobre la línea punteada.</li>
+        <li>Si un signo no lo usas, déjalo en blanco.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="calibration">
+    <p><strong>Frase de calibración.</strong> Escríbela una vez con tu letra normal.</p>
+    <div class="phrase">El veloz murciélago hindú comía feliz cardillo y kiwi.</div>
+    <div class="lines"><div class="rule"></div><div class="rule"></div></div>
+    <p style="margin-top:3mm"><strong>Frase con acentos.</strong> Repite el ejercicio con las letras del español.</p>
+    <div class="phrase">Árbol, cañón, pingüino, música, José, ¿qué más?</div>
+    <div class="lines"><div class="rule"></div><div class="rule"></div></div>
+  </div>
+
+  <div class="scan">
+    <h2>Después de llenarla</h2>
+    <ul>
+      <li>Escanea o fotografía las hojas completas, derechas y con buena luz (300–600 DPI).</li>
+      <li>Digitaliza los caracteres con FontForge, Calligraphr o tu flujo habitual.</li>
+      <li>Importa la fuente en Tinta Propia desde <strong>Ajustes → Fuentes</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="contents">
+    <b>Contenido:</b> 1. Portada y calibración · 2. Letras y números · 3. Puntuación y signos básicos.
+  </div>
+  <div class="footnote">Tinta Propia · Plantilla simple · Para símbolos avanzados, usa la plantilla completa.</div>
+</section>
+
+
+<section class="page simple">
+  <div class="page-head"><span class="brand">Tinta Propia · Plantilla simple</span><span class="page-number">2 / 3</span></div>
+  <div class="group"><h2>Minúsculas <span>27</span></h2><div class="grid simple-grid"><div class="cell"><span class="glyph">a</span><span class="code">U+0061</span></div><div class="cell"><span class="glyph">b</span><span class="code">U+0062</span></div><div class="cell"><span class="glyph">c</span><span class="code">U+0063</span></div><div class="cell"><span class="glyph">d</span><span class="code">U+0064</span></div><div class="cell"><span class="glyph">e</span><span class="code">U+0065</span></div><div class="cell"><span class="glyph">f</span><span class="code">U+0066</span></div><div class="cell"><span class="glyph">g</span><span class="code">U+0067</span></div><div class="cell"><span class="glyph">h</span><span class="code">U+0068</span></div><div class="cell"><span class="glyph">i</span><span class="code">U+0069</span></div><div class="cell"><span class="glyph">j</span><span class="code">U+006A</span></div><div class="cell"><span class="glyph">k</span><span class="code">U+006B</span></div><div class="cell"><span class="glyph">l</span><span class="code">U+006C</span></div><div class="cell"><span class="glyph">m</span><span class="code">U+006D</span></div><div class="cell"><span class="glyph">n</span><span class="code">U+006E</span></div><div class="cell"><span class="glyph">ñ</span><span class="code">U+00F1</span></div><div class="cell"><span class="glyph">o</span><span class="code">U+006F</span></div><div class="cell"><span class="glyph">p</span><span class="code">U+0070</span></div><div class="cell"><span class="glyph">q</span><span class="code">U+0071</span></div><div class="cell"><span class="glyph">r</span><span class="code">U+0072</span></div><div class="cell"><span class="glyph">s</span><span class="code">U+0073</span></div><div class="cell"><span class="glyph">t</span><span class="code">U+0074</span></div><div class="cell"><span class="glyph">u</span><span class="code">U+0075</span></div><div class="cell"><span class="glyph">v</span><span class="code">U+0076</span></div><div class="cell"><span class="glyph">w</span><span class="code">U+0077</span></div><div class="cell"><span class="glyph">x</span><span class="code">U+0078</span></div><div class="cell"><span class="glyph">y</span><span class="code">U+0079</span></div><div class="cell"><span class="glyph">z</span><span class="code">U+007A</span></div></div></div>
+  <div class="group"><h2>Mayúsculas <span>27</span></h2><div class="grid simple-grid"><div class="cell"><span class="glyph">A</span><span class="code">U+0041</span></div><div class="cell"><span class="glyph">B</span><span class="code">U+0042</span></div><div class="cell"><span class="glyph">C</span><span class="code">U+0043</span></div><div class="cell"><span class="glyph">D</span><span class="code">U+0044</span></div><div class="cell"><span class="glyph">E</span><span class="code">U+0045</span></div><div class="cell"><span class="glyph">F</span><span class="code">U+0046</span></div><div class="cell"><span class="glyph">G</span><span class="code">U+0047</span></div><div class="cell"><span class="glyph">H</span><span class="code">U+0048</span></div><div class="cell"><span class="glyph">I</span><span class="code">U+0049</span></div><div class="cell"><span class="glyph">J</span><span class="code">U+004A</span></div><div class="cell"><span class="glyph">K</span><span class="code">U+004B</span></div><div class="cell"><span class="glyph">L</span><span class="code">U+004C</span></div><div class="cell"><span class="glyph">M</span><span class="code">U+004D</span></div><div class="cell"><span class="glyph">N</span><span class="code">U+004E</span></div><div class="cell"><span class="glyph">Ñ</span><span class="code">U+00D1</span></div><div class="cell"><span class="glyph">O</span><span class="code">U+004F</span></div><div class="cell"><span class="glyph">P</span><span class="code">U+0050</span></div><div class="cell"><span class="glyph">Q</span><span class="code">U+0051</span></div><div class="cell"><span class="glyph">R</span><span class="code">U+0052</span></div><div class="cell"><span class="glyph">S</span><span class="code">U+0053</span></div><div class="cell"><span class="glyph">T</span><span class="code">U+0054</span></div><div class="cell"><span class="glyph">U</span><span class="code">U+0055</span></div><div class="cell"><span class="glyph">V</span><span class="code">U+0056</span></div><div class="cell"><span class="glyph">W</span><span class="code">U+0057</span></div><div class="cell"><span class="glyph">X</span><span class="code">U+0058</span></div><div class="cell"><span class="glyph">Y</span><span class="code">U+0059</span></div><div class="cell"><span class="glyph">Z</span><span class="code">U+005A</span></div></div></div>
+  <div class="group"><h2>Números <span>10</span></h2><div class="grid simple-grid"><div class="cell"><span class="glyph">0</span><span class="code">U+0030</span></div><div class="cell"><span class="glyph">1</span><span class="code">U+0031</span></div><div class="cell"><span class="glyph">2</span><span class="code">U+0032</span></div><div class="cell"><span class="glyph">3</span><span class="code">U+0033</span></div><div class="cell"><span class="glyph">4</span><span class="code">U+0034</span></div><div class="cell"><span class="glyph">5</span><span class="code">U+0035</span></div><div class="cell"><span class="glyph">6</span><span class="code">U+0036</span></div><div class="cell"><span class="glyph">7</span><span class="code">U+0037</span></div><div class="cell"><span class="glyph">8</span><span class="code">U+0038</span></div><div class="cell"><span class="glyph">9</span><span class="code">U+0039</span></div></div></div>
+  <div class="group"><h2>Español <span>14</span></h2><div class="grid simple-grid"><div class="cell"><span class="glyph">á</span><span class="code">U+00E1</span></div><div class="cell"><span class="glyph">é</span><span class="code">U+00E9</span></div><div class="cell"><span class="glyph">í</span><span class="code">U+00ED</span></div><div class="cell"><span class="glyph">ó</span><span class="code">U+00F3</span></div><div class="cell"><span class="glyph">ú</span><span class="code">U+00FA</span></div><div class="cell"><span class="glyph">ü</span><span class="code">U+00FC</span></div><div class="cell"><span class="glyph">Á</span><span class="code">U+00C1</span></div><div class="cell"><span class="glyph">É</span><span class="code">U+00C9</span></div><div class="cell"><span class="glyph">Í</span><span class="code">U+00CD</span></div><div class="cell"><span class="glyph">Ó</span><span class="code">U+00D3</span></div><div class="cell"><span class="glyph">Ú</span><span class="code">U+00DA</span></div><div class="cell"><span class="glyph">Ü</span><span class="code">U+00DC</span></div><div class="cell"><span class="glyph">¿</span><span class="code">U+00BF</span></div><div class="cell"><span class="glyph">¡</span><span class="code">U+00A1</span></div></div></div>
+  <div class="footnote">Tinta Propia · Plantilla simple · Escribe un carácter por casilla.</div>
+</section>
+
+
+<section class="page simple">
+  <div class="page-head"><span class="brand">Tinta Propia · Plantilla simple</span><span class="page-number">3 / 3</span></div>
+  <div class="group"><h2>Puntuación <span>32</span></h2><div class="grid simple-grid compact"><div class="cell"><span class="glyph">.</span><span class="code">U+002E</span></div><div class="cell"><span class="glyph">,</span><span class="code">U+002C</span></div><div class="cell"><span class="glyph">;</span><span class="code">U+003B</span></div><div class="cell"><span class="glyph">:</span><span class="code">U+003A</span></div><div class="cell"><span class="glyph">!</span><span class="code">U+0021</span></div><div class="cell"><span class="glyph">?</span><span class="code">U+003F</span></div><div class="cell"><span class="glyph">¡</span><span class="code">U+00A1</span></div><div class="cell"><span class="glyph">¿</span><span class="code">U+00BF</span></div><div class="cell"><span class="glyph">&#x27;</span><span class="code">U+0027</span></div><div class="cell"><span class="glyph">&quot;</span><span class="code">U+0022</span></div><div class="cell"><span class="glyph">“</span><span class="code">U+201C</span></div><div class="cell"><span class="glyph">”</span><span class="code">U+201D</span></div><div class="cell"><span class="glyph">(</span><span class="code">U+0028</span></div><div class="cell"><span class="glyph">)</span><span class="code">U+0029</span></div><div class="cell"><span class="glyph">[</span><span class="code">U+005B</span></div><div class="cell"><span class="glyph">]</span><span class="code">U+005D</span></div><div class="cell"><span class="glyph">{</span><span class="code">U+007B</span></div><div class="cell"><span class="glyph">}</span><span class="code">U+007D</span></div><div class="cell"><span class="glyph">–</span><span class="code">U+2013</span></div><div class="cell"><span class="glyph">—</span><span class="code">U+2014</span></div><div class="cell"><span class="glyph">_</span><span class="code">U+005F</span></div><div class="cell"><span class="glyph">-</span><span class="code">U+002D</span></div><div class="cell"><span class="glyph">/</span><span class="code">U+002F</span></div><div class="cell"><span class="glyph">\</span><span class="code">U+005C</span></div><div class="cell"><span class="glyph">|</span><span class="code">U+007C</span></div><div class="cell"><span class="glyph">@</span><span class="code">U+0040</span></div><div class="cell"><span class="glyph">#</span><span class="code">U+0023</span></div><div class="cell"><span class="glyph">&amp;</span><span class="code">U+0026</span></div><div class="cell"><span class="glyph">*</span><span class="code">U+002A</span></div><div class="cell"><span class="glyph">•</span><span class="code">U+2022</span></div><div class="cell"><span class="glyph">…</span><span class="code">U+2026</span></div><div class="cell"><span class="glyph">·</span><span class="code">U+00B7</span></div></div></div>
+  <div class="group"><h2>Matemáticas básicas <span>16</span></h2><div class="grid simple-grid compact"><div class="cell"><span class="glyph">+</span><span class="code">U+002B</span></div><div class="cell"><span class="glyph">−</span><span class="code">U+2212</span></div><div class="cell"><span class="glyph">×</span><span class="code">U+00D7</span></div><div class="cell"><span class="glyph">÷</span><span class="code">U+00F7</span></div><div class="cell"><span class="glyph">=</span><span class="code">U+003D</span></div><div class="cell"><span class="glyph">≠</span><span class="code">U+2260</span></div><div class="cell"><span class="glyph">≈</span><span class="code">U+2248</span></div><div class="cell"><span class="glyph">≤</span><span class="code">U+2264</span></div><div class="cell"><span class="glyph">≥</span><span class="code">U+2265</span></div><div class="cell"><span class="glyph">±</span><span class="code">U+00B1</span></div><div class="cell"><span class="glyph">∞</span><span class="code">U+221E</span></div><div class="cell"><span class="glyph">√</span><span class="code">U+221A</span></div><div class="cell"><span class="glyph">%</span><span class="code">U+0025</span></div><div class="cell"><span class="glyph">°</span><span class="code">U+00B0</span></div><div class="cell"><span class="glyph">∑</span><span class="code">U+2211</span></div><div class="cell"><span class="glyph">∫</span><span class="code">U+222B</span></div></div></div>
+  <div class="group"><h2>Monedas <span>4</span></h2><div class="grid simple-grid compact"><div class="cell"><span class="glyph">$</span><span class="code">U+0024</span></div><div class="cell"><span class="glyph">€</span><span class="code">U+20AC</span></div><div class="cell"><span class="glyph">£</span><span class="code">U+00A3</span></div><div class="cell"><span class="glyph">¥</span><span class="code">U+00A5</span></div></div></div>
+  <div class="group"><h2>Signos propios <span>14</span></h2><div class="grid simple-grid compact"><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div><div class="cell blank"><span class="code">U+____</span></div></div></div>
+  <div class="note" style="margin-top:2mm"><strong>Signos propios.</strong> Escribe aquí cualquier signo de tus apuntes que no aparezca en la lista.</div>
+  <div class="footnote">Tinta Propia · Plantilla simple · Para símbolos avanzados, usa la plantilla completa.</div>
+</section>
+
+</body>
+</html>

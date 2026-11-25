@@ -59,6 +59,8 @@ La aplicación incluye **16 familias tipográficas** (17 archivos TTF) empaqueta
 
 Están en `src/assets/fonts/` y se declaran en `src/fonts.css`. Los textos completos de las licencias están en [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md). La app también permite importar fuentes propias en TTF, OTF o WOFF.
 
+Si quieres crear tu propia fuente, usa la [plantilla completa](<docs/Plantilla de caracteres - Tinta Propia.pdf>) o la [plantilla simple de 3 páginas](<docs/Plantilla de caracteres - Tinta Propia - Simple.pdf>). La simple incluye letras, números, español, puntuación y signos básicos, sin griegas ni símbolos avanzados.
+
 ## Requisitos
 
 ### General
@@ -532,6 +534,8 @@ docs/
     logo.png
   Plantilla de caracteres - Tinta Propia.html
   Plantilla de caracteres - Tinta Propia.pdf
+  Plantilla de caracteres - Tinta Propia - Simple.html
+  Plantilla de caracteres - Tinta Propia - Simple.pdf
   LEEME - Plantilla de caracteres.txt
   THIRD_PARTY_NOTICES.md
 
@@ -573,7 +577,8 @@ El render del manuscrito sigue siendo JavaScript sobre canvas. Rust se encarga d
 - [Código de conducta](.github/CODE_OF_CONDUCT.md)
 - [Política de seguridad](.github/SECURITY.md)
 - [Arquitectura del frontend](docs/ARCHITECTURE.md)
-- [Plantilla de caracteres para fuentes](<docs/Plantilla de caracteres - Tinta Propia.pdf>)
+- [Plantilla de caracteres para fuentes (completa)](<docs/Plantilla de caracteres - Tinta Propia.pdf>)
+- [Plantilla de caracteres simple (3 páginas)](<docs/Plantilla de caracteres - Tinta Propia - Simple.pdf>)
 - [Historial de cambios](CHANGELOG.md)
 - [Avisos de terceros y licencias de fuentes](docs/THIRD_PARTY_NOTICES.md)
 - [Licencia MIT](LICENSE)

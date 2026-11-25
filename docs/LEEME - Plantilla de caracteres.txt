@@ -2,11 +2,22 @@ PLANTILLA DE CARACTERES — TINTA PROPIA
 ======================================
 
 Archivos:
-  Plantilla de caracteres - Tinta Propia.pdf   (para imprimir)
-  Plantilla de caracteres - Tinta Propia.html  (editable, se abre en el navegador)
+  Plantilla de caracteres - Tinta Propia.pdf           (completa, para imprimir)
+  Plantilla de caracteres - Tinta Propia.html          (completa, editable)
+  Plantilla de caracteres - Tinta Propia - Simple.pdf  (simple, para imprimir)
+  Plantilla de caracteres - Tinta Propia - Simple.html (simple, editable)
 
-Qué contiene
-------------
+Versión simple
+--------------
+Si no necesitas símbolos avanzados, usa la versión simple de 3 páginas:
+  Plantilla de caracteres - Tinta Propia - Simple.pdf
+Incluye minúsculas, mayúsculas, ñ, acentos del español, números,
+puntuación básica, operadores frecuentes, monedas y 14 casillas libres.
+No incluye griegas, lógica, conjuntos, flechas, superíndices, subíndices,
+fracciones ni símbolos geométricos. Es la recomendada para escribir texto.
+
+Qué contiene la versión completa
+--------------------------------
 11 páginas A4:
 1. Portada con instrucciones y frase de calibración.
 2. Calibración: frase, parejas de letras, notas y texto libre.
