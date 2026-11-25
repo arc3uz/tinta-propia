@@ -6,6 +6,18 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y e
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-11-25
+
+### Added
+
+- Compilación para macOS con DMG universal para Apple Silicon e Intel.
+- Trabajo de macOS en los workflows de CI y release.
+- Documentación de requisitos, compilación y distribución para macOS.
+
+### Changed
+
+- El DMG de macOS se firma en modo ad-hoc; la notarización queda pendiente.
+
 ## [0.11.0] - 2026-11-21
 
 ### Added

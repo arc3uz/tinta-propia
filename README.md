@@ -11,7 +11,7 @@ Aplicación de escritorio para escribir manuscritos con tu propia letra, con una
 
 Funciona **100 % local**. No hay cuentas, servidores, telemetría ni conexión a internet.
 
-El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`) y en **Windows 10/11** (instalador NSIS y MSI con WebView2 offline).
+El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`), en **Windows 10/11** (instalador NSIS y MSI con WebView2 offline) y en **macOS 11 o superior** (DMG universal para Apple Silicon e Intel).
 
 ## Características
 
@@ -75,6 +75,16 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
 - Microsoft Visual Studio Build Tools con la carga de trabajo **Desarrollo para escritorio con C++**.
 - WebView2. Windows 10/11 suele incluirlo; si no, el instalador lo incorpora en modo offline.
 - Rust con el toolchain `stable-x86_64-pc-windows-msvc`.
+
+### macOS
+
+- macOS 11 (Big Sur) o superior.
+- Xcode Command Line Tools: `xcode-select --install`.
+- Rust estable con los objetivos de las dos arquitecturas:
+
+```bash
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+```
 
 ## Qué incluye el repositorio
 
@@ -145,15 +155,44 @@ src-tauri\target\release\bundle\
 
 El instalador de Windows usa **WebView2 offline**, así que no necesita internet al instalar. Por eso pesa más que un instalador normal.
 
+### macOS
+
+En un Mac con Xcode Command Line Tools:
+
+```bash
+npm ci
+npm run app:build -- --target universal-apple-darwin --bundles dmg
+```
+
+Genera un DMG universal (Apple Silicon e Intel) en:
+
+```text
+src-tauri/target/universal-apple-darwin/release/bundle/dmg/
+```
+
+El DMG se firma en modo **ad-hoc** (`signingIdentity: "-"`), suficiente para
+probarlo, pero no está notarizado. Al descargarlo, macOS puede pedir
+confirmación; ábrelo con clic derecho → **Abrir** o elimina la cuarentena:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Tinta Propia.app"
+```
+
+Para distribuir sin advertencias hace falta una cuenta de Apple Developer, un
+certificado **Developer ID Application** y notarización. Cuando tengas el
+certificado, cambia `signingIdentity` en `tauri.macos.conf.json` y configura las
+variables `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
+`APPLE_PASSWORD` y `APPLE_TEAM_ID` en el repositorio.
+
 ### Solo el binario
 
 ```bash
 npm run app:build -- --no-bundle
 ```
 
-El ejecutable queda en `src-tauri/target/release/tinta-propia` (Linux) o `tinta-propia.exe` (Windows).
+El ejecutable queda en `src-tauri/target/release/tinta-propia` (Linux), `src-tauri\target\release\tinta-propia.exe` (Windows) o `src-tauri/target/universal-apple-darwin/release/tinta-propia` (macOS universal).
 
-No se recomienda compilar para Windows desde Linux ni al revés. Los workflows de GitHub Actions compilan cada sistema en su propio runner.
+No se puede compilar para Windows ni macOS desde Linux. Los workflows de GitHub Actions compilan cada sistema en su propio runner; macOS necesita Xcode y no hay forma de generar un DMG desde otro sistema.
 
 ## Salidas por plataforma
 
@@ -161,6 +200,7 @@ No se recomienda compilar para Windows desde Linux ni al revés. Los workflows d
 |---|---|---|
 | Linux | AppImage, `.deb`, `.rpm` | AppImage recomendado para CachyOS/Arch |
 | Windows | NSIS `.exe`, `.msi` | WebView2 offline incluido |
+| macOS | DMG universal | Apple Silicon e Intel; firma ad-hoc, sin notarizar |
 
 ## Scripts
 
@@ -188,11 +228,11 @@ El repositorio incluye dos workflows:
 
 - `.github/workflows/ci.yml`
   - En pull requests ejecuta formato, Clippy, pruebas Rust y build del frontend.
-  - En pushes a `main` y ejecuciones manuales también genera instaladores de Linux y Windows como artefactos.
+  - En pushes a `main` y ejecuciones manuales también genera instaladores de Linux, Windows y macOS como artefactos.
 - `.github/workflows/release.yml`
   - Se activa al empujar un tag `v*`.
-  - Compila en Ubuntu y Windows.
-  - Publica un **draft release** con AppImage, `.deb`, `.rpm`, `.exe` y `.msi`.
+  - Compila en Ubuntu, Windows y macOS.
+  - Publica un **draft release** con AppImage, `.deb`, `.rpm`, `.exe`, `.msi` y un DMG universal de macOS.
 
 ### Publicar una versión
 
@@ -220,14 +260,16 @@ El repositorio incluye dos workflows:
 
 4. Revisa el draft release en GitHub y publícalo.
 
-## Linux y Windows: notas de compatibilidad
+## Linux, Windows y macOS: notas de compatibilidad
 
-- El motor de dibujo es JavaScript sobre canvas; el mismo código produce las mismas páginas en WebKitGTK y WebView2.
+- El motor de dibujo es JavaScript sobre canvas; el mismo código produce las mismas páginas en WebKitGTK, WebView2 y WKWebView.
 - Los diálogos nativos, la carpeta de datos y la apertura de archivos usan Tauri; las rutas se resuelven con `Path` de Rust.
 - El PDF se arma en Rust con imágenes JPEG embebidas, sin depender del motor de impresión del sistema.
 - La exportación se bloquea mientras hay diagramas Mermaid en preparación para no generar un PDF con recuadros pendientes.
 - La fuente calibrada y las 16 fuentes incluidas viajan dentro del frontend; no se descargan desde internet.
-- En Windows, el instalador incluye WebView2 offline. En Linux, el AppImage incluye las bibliotecas que necesita; el `.deb` y el `.rpm` usan WebKitGTK del sistema.
+- En Windows, el instalador incluye WebView2 offline. En Linux, el AppImage incluye las bibliotecas que necesita; el `.deb` y el `.rpm` usan WebKitGTK del sistema. En macOS se usa el WKWebView del sistema.
+- Los atajos aceptan `Cmd` en macOS además de `Ctrl`. La interfaz sigue mostrando `Ctrl` en los textos.
+- El DMG de macOS se firma en modo ad-hoc, pero no se notariza. Gatekeeper puede pedir confirmación al abrirlo por primera vez.
 
 ## Uso rápido
 

@@ -20,10 +20,13 @@ jobs:
         include:
           - os: ubuntu-22.04
             artifact: linux
-            bundles: appimage,deb,rpm
+            args: --bundles appimage,deb,rpm
           - os: windows-latest
             artifact: windows
-            bundles: nsis,msi
+            args: --bundles nsis,msi
+          - os: macos-latest
+            artifact: macos
+            args: --bundles dmg --target universal-apple-darwin
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -52,6 +55,10 @@ jobs:
       - name: Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Objetivos macOS
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
       - name: Caché de Cargo
         uses: Swatinem/rust-cache@v2
         with:
@@ -69,7 +76,7 @@ jobs:
           releaseName: "Tinta Propia ${{ github.ref_name }}"
           releaseDraft: true
           prerelease: false
-          args: --bundles ${{ matrix.bundles }}
+          args: ${{ matrix.args }}
           releaseBody: |
             ## Tinta Propia ${{ github.ref_name }}
 
@@ -88,10 +95,18 @@ jobs:
 
             - **Linux:** AppImage, `.deb` y `.rpm`.
             - **Windows 10/11:** instalador NSIS (`.exe`) y MSI (`.msi`).
+            - **macOS:** DMG universal para Apple Silicon e Intel.
 
             Los instaladores de Windows incluyen WebView2 en modo offline.
             No están firmados digitalmente, así que SmartScreen puede pedir
             confirmación.
+
+            El DMG de macOS usa una firma ad-hoc y todavía no está notarizado.
+            Para abrirlo, usa clic derecho → **Abrir**, o elimina la cuarentena con:
+
+            ```bash
+            xattr -dr com.apple.quarantine "/Applications/Tinta Propia.app"
+            ```
 
             ### Notas
 
