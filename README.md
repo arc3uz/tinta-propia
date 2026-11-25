@@ -36,6 +36,7 @@ Tinta Propia es una aplicación de escritorio para escribir manuscritos con una 
 - [Características](#características)
 - [Fuentes incluidas](#fuentes-incluidas)
 - [Descargas](#descargas)
+- [Capturas](#capturas)
 - [Primeros pasos](#primeros-pasos)
 - [Guía rápida](#guía-rápida)
 - [Atajos](#atajos)
@@ -113,6 +114,14 @@ Descarga el DMG universal y arrastra **Tinta Propia** a **Applications**. El DMG
 ```bash
 xattr -dr com.apple.quarantine "/Applications/Tinta Propia.app"
 ```
+
+## Capturas
+
+**Biblioteca de proyectos.** Carpetas, etiquetas heredadas, búsqueda y filtros.
+
+<p align="center">
+  <img src="docs/branding/library.png" alt="Biblioteca de proyectos de Tinta Propia con carpetas y etiquetas" width="100%" />
+</p>
 
 ## Primeros pasos
 
@@ -331,6 +340,7 @@ docs/
   RELEASING.md
   THIRD_PARTY_NOTICES.md
   branding/
+    library.png
     logo.png
     screenshot.png
   plantilla-de-caracteres/
