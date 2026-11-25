@@ -11,6 +11,10 @@ Aplicación de escritorio para escribir manuscritos con tu propia letra, con una
 
 Funciona **100 % local**. No hay cuentas, servidores, telemetría ni conexión a internet.
 
+<p align="center">
+  <img src="docs/branding/screenshot.png" alt="Tinta Propia: editor Markdown y vista previa paginada del manuscrito" width="100%" />
+</p>
+
 El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`), en **Windows 10/11** (instalador NSIS y MSI con WebView2 offline) y en **macOS 11 o superior** (DMG universal para Apple Silicon e Intel).
 
 ## Características
@@ -504,7 +508,7 @@ src/
     export.js   exportación PDF, PNG y Markdown
     outline.js  esquema y estadísticas del documento
 
-public/vendor/mathjax/
+public/mathjax/
   tex-svg.js    MathJax 3.2.2 local
 
 src-tauri/

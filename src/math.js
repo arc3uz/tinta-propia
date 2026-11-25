@@ -21,7 +21,7 @@ function loadMathJax() {
   if (mathJaxLoader) return mathJaxLoader;
   mathJaxLoader = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "/vendor/mathjax/tex-svg.js";
+    script.src = "/mathjax/tex-svg.js";
     script.async = true;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("No se pudo cargar MathJax."));
