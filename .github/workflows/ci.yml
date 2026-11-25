@@ -97,7 +97,9 @@ jobs:
 
   bundle:
     name: Paquetes (${{ matrix.artifact }})
-    if: github.event_name != 'pull_request'
+    # La cuota de artefactos de Actions es de 2 GB. Los paquetes se generan
+    # solo a pedido; para distribuir se usa el workflow de release.
+    if: github.event_name == 'workflow_dispatch'
     needs: check
     strategy:
       fail-fast: false
@@ -160,7 +162,7 @@ jobs:
         with:
           name: tinta-propia-${{ matrix.artifact }}
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 1
           path: |
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/deb/*.deb

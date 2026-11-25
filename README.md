@@ -228,11 +228,13 @@ El repositorio incluye dos workflows:
 
 - `.github/workflows/ci.yml`
   - En pull requests ejecuta formato, Clippy, pruebas Rust y build del frontend.
-  - En pushes a `main` y ejecuciones manuales también genera instaladores de Linux, Windows y macOS como artefactos.
+  - En ejecuciones manuales (`workflow_dispatch`) genera instaladores de Linux, Windows y macOS como artefactos, con retención de 1 día. No se generan en cada push para no agotar la cuota de almacenamiento de Actions.
 - `.github/workflows/release.yml`
   - Se activa al empujar un tag `v*`.
   - Compila en Ubuntu, Windows y macOS.
   - Publica un **draft release** con AppImage, `.deb`, `.rpm`, `.exe`, `.msi` y un DMG universal de macOS.
+
+Los archivos adjuntos a un GitHub Release no consumen la cuota de artefactos de Actions. Los artefactos de CI sí, así que se generan solo a pedido y con retención de 1 día.
 
 ### Publicar una versión
 
