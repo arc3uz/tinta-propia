@@ -117,6 +117,19 @@ src-tauri/gen/       esquemas generados por Tauri
 
 Tampoco se versionan los instaladores. GitHub Actions los construye a partir del código cuando se publica un tag `v*`.
 
+### Estructura general
+
+| Ruta | Contenido |
+|---|---|
+| `src/` | Frontend: editor CodeMirror, motor canvas, fórmulas, Mermaid, estilos y módulos de biblioteca/exportación. |
+| `src/assets/` | Fuente calibrada, 16 familias tipográficas, icono y plantilla de ejemplo. |
+| `public/vendor/` | MathJax 3.2.2 local para las fórmulas sin conexión. |
+| `src-tauri/` | Backend Rust, configuración de Tauri, capacidades e iconos de las tres plataformas. |
+| `docs/` | Arquitectura, avisos de terceros, logo y plantilla de caracteres para crear fuentes. |
+| `.github/` | Workflows de CI, limpieza y release; Dependabot; plantillas de issues y PR; seguridad y contribución. |
+| `scripts/` | Utilidades de desarrollo, como la actualización de versión. |
+| `README.md`, `CHANGELOG.md`, `LICENSE` | Documentación principal, historial de cambios y licencia MIT. |
+
 ## Desarrollo
 
 ```bash
