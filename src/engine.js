@@ -35,7 +35,7 @@ export const INKS = {
 };
 
 export const FONTS = [
-  { value: "MiLetra", label: "Mi letra (calibrada)" },
+  { value: "MiLetraArc", label: "MiLetraArc (calibrada)" },
   { value: "Papernotes", label: "Papel clásico (incluida)" },
   { value: "Caveat", label: "Caveat" },
   { value: "Patrick Hand", label: "Patrick Hand" },
@@ -54,7 +54,7 @@ export const FONTS = [
 ];
 
 export const DEFAULT_SETTINGS = {
-  font: "MiLetra",
+  font: "MiLetraArc",
   size: 26,
   leading: 1.32,
   tracking: 1.05,
@@ -186,8 +186,8 @@ const state = {
   pendingMermaid: new Set(),
   mathImages: new Map(),
   mathTokens: new Map(),
-  currentFont: "MiLetra",
-  sectionFont: "MiLetra",
+  currentFont: "MiLetraArc",
+  sectionFont: "MiLetraArc",
   sectionIndex: 0,
   lineIndex: 0,
   mathTokenSeq: 0,
@@ -415,7 +415,7 @@ function newPage() {
 
 function font(size, bold) {
   const family = state.currentFont || state.settings.font || "Papernotes";
-  const weight = bold && family !== "MiLetra" ? "700 " : "400 ";
+  const weight = bold && family !== "MiLetraArc" ? "700 " : "400 ";
   return `${weight}${size}px "${family}", cursive`;
 }
 
@@ -527,7 +527,7 @@ function measureLine(ctx, text, size, bold) {
     width += mathWordWidth(ctx, words[i], size);
     if (i < words.length - 1) {
       const gap = Math.max(ctx.measureText(" ").width, size * 0.38) * wordSpacing();
-      width += family === "MiLetra" ? gap : gap * tracking() * 1.45;
+      width += family === "MiLetraArc" ? gap : gap * tracking() * 1.45;
     }
   }
   return width;
@@ -652,7 +652,7 @@ function drawWordLine(ctx, text, x, y, size, bold, lineColor) {
 function drawLine(ctx, text, x, y, size, bold) {
   const family = state.currentFont || state.settings.font || "Papernotes";
   const lineColor = bold ? headingColor() : inkColor();
-  if (family === "MiLetra" || MATH_TOKEN_RE.test(text)) {
+  if (family === "MiLetraArc" || MATH_TOKEN_RE.test(text)) {
     drawWordLine(ctx, text, x, y, size, bold, lineColor);
     return;
   }
@@ -1644,7 +1644,7 @@ function layoutPass(markdown, { prepass, toc }) {
           state.sectionIndex += 1;
           state.sectionFont = pickMixedFont(1000 + state.sectionIndex);
         }
-        const custom = state.settings.font === "MiLetra";
+        const custom = state.settings.font === "MiLetraArc";
         if (custom) {
           size =
             baseSize *

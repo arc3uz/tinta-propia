@@ -49,7 +49,7 @@ La aplicación incluye **16 familias tipográficas** (17 archivos TTF) empaqueta
 
 | Familia | Uso | Origen / licencia |
 |---|---|---|
-| **MiLetra** | Fuente calibrada principal | Incluida por el autor |
+| **MiLetraArc** | Fuente calibrada principal | Incluida por el autor |
 | **Papernotes** y **Papernotes Bold** | Fuente clásica incluida | Incluida por el autor |
 | Caveat, Patrick Hand, Kalam, Shadows Into Light, Indie Flower, Gochi Hand, Sue Ellen Francisco, Over the Rainbow, Annie Use Your Telescope, Gloria Hallelujah, Reenie Beanie, Schoolbell, Grape Nuts y Mynerve | Fuentes manuscritas alternativas | Google Fonts, SIL Open Font License 1.1 |
 
@@ -491,7 +491,7 @@ src/
   assets/
     brand/icon.png
     example.md
-    fonts/      17 TTF: MiLetra, Papernotes y 14 fuentes manuscritas
+    fonts/      17 TTF: MiLetraArc, Papernotes y 14 fuentes manuscritas
 
   core/
     state.js    estado compartido y claves de persistencia

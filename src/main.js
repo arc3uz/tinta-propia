@@ -206,7 +206,9 @@ function computeImageSeq(assets) {
 function normalizeSettings(settings) {
   const next = { ...settings };
   for (const key of ["font", "mixFont1", "mixFont2", "mixFont3"]) {
-    if (next[key] === "MiLetra IIC2531") next[key] = "MiLetra";
+    if (next[key] === "MiLetra IIC2531" || next[key] === "MiLetra") {
+      next[key] = "MiLetraArc";
+    }
   }
   return next;
 }

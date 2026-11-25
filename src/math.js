@@ -298,7 +298,7 @@ async function renderHandwritten(tex, settings) {
 
   const fontPx = 80;
   const fracPx = Math.round(fontPx * 0.78);
-  const family = settings.font || "MiLetra";
+  const family = settings.font || "MiLetraArc";
   try {
     await document.fonts.load(`400 ${fontPx}px "${family}"`);
     await document.fonts.load(`400 ${fracPx}px "${family}"`);
