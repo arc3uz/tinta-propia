@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/arc3uz/tinta-propia/releases">
-    <img src="https://img.shields.io/badge/Descargar-Releases-2f6f4e?style=for-the-badge&logo=github&logoColor=white" alt="Descargar Tinta Propia" />
+    <img src="https://img.shields.io/badge/Descargar_Tinta_Propia-2f6f4e?style=for-the-badge&logo=github&logoColor=white" alt="Descargar Tinta Propia" />
   </a>
 </p>
 
