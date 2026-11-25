@@ -43,6 +43,18 @@ El proyecto está preparado para compilar en **Linux** (AppImage, `.deb`, `.rpm`
 - Pantalla completa con el botón de la barra superior o `F11`.
 - Atajos de teclado y cierre con `Ctrl+Q` guardando la sesión.
 
+## Fuentes incluidas
+
+La aplicación incluye **16 familias tipográficas** (17 archivos TTF) empaquetadas localmente:
+
+| Familia | Uso | Origen / licencia |
+|---|---|---|
+| **MiLetra** | Fuente calibrada principal | Incluida por el autor |
+| **Papernotes** y **Papernotes Bold** | Fuente clásica incluida | Incluida por el autor |
+| Caveat, Patrick Hand, Kalam, Shadows Into Light, Indie Flower, Gochi Hand, Sue Ellen Francisco, Over the Rainbow, Annie Use Your Telescope, Gloria Hallelujah, Reenie Beanie, Schoolbell, Grape Nuts y Mynerve | Fuentes manuscritas alternativas | Google Fonts, SIL Open Font License 1.1 |
+
+Están en `src/assets/fonts/` y se declaran en `src/fonts.css`. Los textos completos de las licencias están en [`docs/THIRD_PARTY_NOTICES.md`](docs/THIRD_PARTY_NOTICES.md). La app también permite importar fuentes propias en TTF, OTF o WOFF.
+
 ## Requisitos
 
 ### General
@@ -463,8 +475,10 @@ src/
   styles.css    interfaz tipo Overleaf
   fonts.css     fuentes locales
   math.js       fórmulas MathJax y modo manuscrito
-  assets/       fuente calibrada, fuentes incluidas y plantilla de ejemplo
-  assets/example.md
+  assets/
+    brand/icon.png
+    example.md
+    fonts/      17 TTF: MiLetra, Papernotes y 14 fuentes manuscritas
 
   core/
     state.js    estado compartido y claves de persistencia
@@ -485,10 +499,15 @@ src-tauri/
   src/storage.rs    autosave, recientes, escritura atómica
   src/fonts.rs      importación y listado de fuentes
   src/pdf.rs        generación de PDF con JPEG embebidos
+  capabilities/default.json
   tauri.conf.json
   tauri.linux.conf.json
   tauri.windows.conf.json
+  tauri.macos.conf.json
   icons/
+
+scripts/
+  bump-version.mjs  actualización de versión en todos los archivos
 
 docs/
   ARCHITECTURE.md
@@ -508,6 +527,7 @@ docs/
   ISSUE_TEMPLATE/
   workflows/
     ci.yml
+    cleanup.yml
     release.yml
 ```
 
