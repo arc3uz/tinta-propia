@@ -117,6 +117,12 @@ xattr -dr com.apple.quarantine "/Applications/Tinta Propia.app"
 
 ## Capturas
 
+**Demostración.** Escribir en Markdown, recompilar y ver el resultado en la hoja.
+
+<p align="center">
+  <img src="docs/branding/demo.gif" alt="Demostración de Tinta Propia escribiendo en Markdown y recompilando la vista previa" width="100%" />
+</p>
+
 **Biblioteca de proyectos.** Carpetas, etiquetas heredadas, búsqueda y filtros.
 
 <p align="center">
@@ -340,6 +346,7 @@ docs/
   RELEASING.md
   THIRD_PARTY_NOTICES.md
   branding/
+    demo.gif
     library.png
     logo.png
     screenshot.png
