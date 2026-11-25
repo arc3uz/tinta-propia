@@ -224,15 +224,19 @@ npx tauri icon src/assets/brand/icon.png -o src-tauri/icons
 
 ## CI y releases
 
-El repositorio incluye dos workflows:
+El repositorio incluye tres workflows:
 
 - `.github/workflows/ci.yml`
   - En pull requests ejecuta formato, Clippy, pruebas Rust y build del frontend.
-  - En ejecuciones manuales (`workflow_dispatch`) genera instaladores de Linux, Windows y macOS como artefactos, con retención de 1 día. No se generan en cada push para no agotar la cuota de almacenamiento de Actions.
+  - En ejecuciones manuales (`workflow_dispatch`) puedes marcar **Generar instaladores** para compilar Linux, Windows y macOS como artefactos, con retención de 1 día. Sin la casilla, solo corre los checks.
+  - No genera paquetes en cada push, para no agotar la cuota de almacenamiento de Actions.
 - `.github/workflows/release.yml`
   - Se activa al empujar un tag `v*`.
   - Compila en Ubuntu, Windows y macOS.
   - Publica un **draft release** con AppImage, `.deb`, `.rpm`, `.exe`, `.msi` y un DMG universal de macOS.
+- `.github/workflows/cleanup.yml`
+  - Borra los artefactos de Actions con más de 2 días todos los días a las 05:00 UTC.
+  - También se puede ejecutar a mano, con los parámetros `days` y `dry_run`.
 
 Los archivos adjuntos a un GitHub Release no consumen la cuota de artefactos de Actions. Los artefactos de CI sí, así que se generan solo a pedido y con retención de 1 día.
 
